@@ -58,6 +58,23 @@ function storeAuthResult(r: any) {
   setTokens({ idToken: r.IdToken, accessToken: r.AccessToken, refreshToken: r.RefreshToken });
 }
 
+// Self-service password reset: emails a confirmation code to the user.
+export async function forgotPassword(email: string): Promise<void> {
+  await idp('ForgotPassword', {
+    ClientId: awsConfig.cognitoClientId,
+    Username: email,
+  });
+}
+
+export async function confirmForgotPassword(email: string, code: string, newPassword: string): Promise<void> {
+  await idp('ConfirmForgotPassword', {
+    ClientId: awsConfig.cognitoClientId,
+    Username: email,
+    ConfirmationCode: code,
+    Password: newPassword,
+  });
+}
+
 export async function refresh(): Promise<boolean> {
   const t = getTokens();
   if (!t?.refreshToken) return false;

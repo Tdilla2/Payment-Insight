@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Plus, Edit, Trash2, DollarSign, Calendar, Calculator, KeyRound } from 'lucide-react';
+import { Users, Plus, Edit, Trash2, DollarSign, Calendar, Calculator, KeyRound, CheckCircle, Copy, X } from 'lucide-react';
 import { dataApi } from '../lib/dataApi';
+
+// Default temporary password assigned to new client logins (matches the API).
+export const TEMP_PASSWORD = 'Temp1234!';
 
 export const LOAN_TYPES = [
   'Home Mortgage',
@@ -108,6 +111,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [createdClient, setCreatedClient] = useState<{ name: string; email: string; password: string } | null>(null);
   const emptyForm: Partial<Client> = {
     name: '',
     email: '',
@@ -202,14 +206,16 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
       }
       await reload();
       const wasEditing = !!editingId;
-      const name = newClient.name;
-      const email = newClient.email;
+      const name = newClient.name!;
+      const email = newClient.email!;
       setEditingId(null);
       setShowAddForm(false);
       setNewClient(emptyForm);
-      alert(wasEditing
-        ? `✅ ${name}'s information has been updated.`
-        : `✅ Success!\n\nClient "${name}" has been added.\n\nLogin: ${email}\nTemporary password: Temp1234! (they'll be asked to change it on first sign-in)`);
+      if (wasEditing) {
+        alert(`✅ ${name}'s information has been updated.`);
+      } else {
+        setCreatedClient({ name, email, password: TEMP_PASSWORD });
+      }
     } catch (e: any) {
       alert('Error saving client: ' + (e?.message || 'please try again.'));
     }
@@ -240,6 +246,36 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
+      {createdClient && (
+        <div className="mb-6 rounded-lg border-2 border-emerald-300 bg-emerald-50 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-emerald-900">Client "{createdClient.name}" added — login created</p>
+                <p className="text-sm text-gray-700 mt-1">
+                  Share these temporary credentials. They'll be asked to set their own password on first sign-in.
+                </p>
+                <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+                  <span className="text-gray-600">Email / username</span>
+                  <span className="font-mono font-semibold text-gray-900">{createdClient.email}</span>
+                  <span className="text-gray-600">Temporary password</span>
+                  <span className="font-mono font-semibold text-[#7B1E2B]">{createdClient.password}</span>
+                </div>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(`Email: ${createdClient.email}\nTemporary password: ${createdClient.password}`)}
+                  className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  <Copy className="w-3.5 h-3.5" /> Copy credentials
+                </button>
+              </div>
+            </div>
+            <button onClick={() => setCreatedClient(null)} className="text-gray-400 hover:text-gray-700 shrink-0" aria-label="Dismiss">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
