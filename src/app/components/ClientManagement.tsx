@@ -550,6 +550,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
             <tr className="bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white">
               <th className="px-4 py-3 text-left text-sm font-semibold">Client Name</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Contact</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold">Loan Type</th>
               <th className="px-4 py-3 text-right text-sm font-semibold">Balance</th>
               <th className="px-4 py-3 text-right text-sm font-semibold">Monthly Payment</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Next Payment</th>
@@ -569,6 +570,11 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                 <td className="px-4 py-3 text-sm text-gray-600">
                   <div>{client.email}</div>
                   <div className="text-xs text-gray-500">{client.phone}</div>
+                </td>
+                <td className="px-4 py-3 text-sm">
+                  <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-[#7B1E2B] border border-rose-200">
+                    {client.loanType || 'Home Mortgage'}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-right font-semibold text-[#7B1E2B]">
                   {formatCurrency(client.balance)}
