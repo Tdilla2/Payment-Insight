@@ -1,81 +1,66 @@
 import { useState, FormEvent } from 'react';
 import { Lock, LogIn } from 'lucide-react';
-import { Client } from './ClientManagement';
+import { signIn } from '../lib/cognito';
 
 export type UserSession =
   | { role: 'superadmin' }
   | { role: 'client'; clientId: string };
 
 interface LoginScreenProps {
-  onLogin: (session: UserSession, mustChangePassword: boolean) => void;
+  onAuthenticated: () => void;
+  onNewPasswordRequired: (email: string, session: string) => void;
 }
 
-export function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [username, setUsername] = useState('');
+export function LoginScreen({ onAuthenticated, onNewPasswordRequired }: LoginScreenProps) {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-
-    const userInput = username.trim();
-
-    // Super admin match (handled silently behind the scenes)
-    if (userInput.toLowerCase() === 'superadmin' && password === 'admin123') {
-      onLogin({ role: 'superadmin' }, false);
-      return;
-    }
-
-    // Otherwise, try to find a client by email
+    setLoading(true);
     try {
-      const stored = localStorage.getItem('payment_insight_clients');
-      const clients: Client[] = stored ? JSON.parse(stored) : [];
-      const client = clients.find(c => c.email.toLowerCase() === userInput.toLowerCase());
-
-      if (client) {
-        const expectedPassword = client.password ?? 'password123';
-        const mustChange = client.mustChangePassword ?? true;
-        if (password !== expectedPassword) {
-          setError('Incorrect username or password.');
-          return;
-        }
-        onLogin({ role: 'client', clientId: client.id }, mustChange);
-        return;
+      const result = await signIn(email.trim(), password);
+      if (result.status === 'new_password_required') {
+        onNewPasswordRequired(result.email, result.session);
+      } else {
+        onAuthenticated();
       }
-
-      setError('Incorrect username or password.');
-    } catch {
-      setError('Login error. Please try again.');
+    } catch (err: any) {
+      setError(err?.message?.includes('Incorrect') || err?.message?.includes('NotAuthorized')
+        ? 'Incorrect email or password.'
+        : (err?.message || 'Sign-in failed. Please try again.'));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-stone-50 to-red-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA]" />
+        <div className="h-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E]" />
         <div className="p-8">
           <div className="flex justify-center mb-2">
             <img
-              src="/src/imports/payment_insight_logo_new.JPG"
+              src="/payment_insight_mark.svg"
               alt="Payment Insight"
-              className="w-28 h-auto"
+              className="w-24 h-auto"
             />
           </div>
-          <h1 className="text-2xl font-bold text-center text-[#1B4E9B]">PAYMENT INSIGHT</h1>
+          <h1 className="text-2xl font-bold text-center text-[#7B1E2B]">PAYMENT INSIGHT</h1>
           <p className="text-center text-gray-600 text-sm mb-6">Sign in to continue</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Username or Email
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-[#20B2AA]"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-[#A6332E]"
                 required
                 autoFocus
               />
@@ -86,7 +71,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-[#20B2AA]"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-[#A6332E]"
                 required
               />
             </div>
@@ -97,9 +82,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             )}
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors font-semibold shadow-lg flex items-center justify-center gap-2"
+              disabled={loading}
+              className="w-full px-4 py-3 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#7B1E2B] transition-colors font-semibold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              <LogIn className="w-4 h-4" /> Sign In
+              <LogIn className="w-4 h-4" /> {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 

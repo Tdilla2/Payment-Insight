@@ -37,7 +37,7 @@ export function PaymentChart({ schedule }: PaymentChartProps) {
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <BarChart3 className="w-6 h-6 text-[#1B4E9B]" />
+        <BarChart3 className="w-6 h-6 text-[#7B1E2B]" />
         Payment Breakdown Analysis
       </h2>
 
@@ -46,7 +46,7 @@ export function PaymentChart({ schedule }: PaymentChartProps) {
           <h3 className="font-semibold text-gray-700 mb-3">Total Payment Distribution</h3>
           <div className="flex h-12 rounded-lg overflow-hidden border border-gray-200">
             <div
-              className="bg-[#20B2AA] flex items-center justify-center text-white font-semibold transition-all"
+              className="bg-[#A6332E] flex items-center justify-center text-white font-semibold transition-all"
               style={{ width: `${principalPercentage}%` }}
             >
               <span className="text-sm">Principal {principalPercentage.toFixed(1)}%</span>
@@ -74,7 +74,7 @@ export function PaymentChart({ schedule }: PaymentChartProps) {
               </div>
               <div className="flex h-8 rounded overflow-hidden bg-gray-100">
                 <div
-                  className="bg-[#20B2AA] flex items-center justify-center text-white text-xs font-semibold"
+                  className="bg-[#A6332E] flex items-center justify-center text-white text-xs font-semibold"
                   style={{ width: `${(firstPayment.principal / firstPayment.payment) * 100}%` }}
                 >
                   {formatCurrency(firstPayment.principal)}
@@ -98,7 +98,7 @@ export function PaymentChart({ schedule }: PaymentChartProps) {
               </div>
               <div className="flex h-8 rounded overflow-hidden bg-gray-100">
                 <div
-                  className="bg-[#20B2AA] flex items-center justify-center text-white text-xs font-semibold"
+                  className="bg-[#A6332E] flex items-center justify-center text-white text-xs font-semibold"
                   style={{ width: `${(midPayment.principal / midPayment.payment) * 100}%` }}
                 >
                   {formatCurrency(midPayment.principal)}
@@ -122,7 +122,7 @@ export function PaymentChart({ schedule }: PaymentChartProps) {
               </div>
               <div className="flex h-8 rounded overflow-hidden bg-gray-100">
                 <div
-                  className="bg-[#20B2AA] flex items-center justify-center text-white text-xs font-semibold"
+                  className="bg-[#A6332E] flex items-center justify-center text-white text-xs font-semibold"
                   style={{ width: `${(lastPayment.principal / lastPayment.payment) * 100}%` }}
                 >
                   {formatCurrency(lastPayment.principal)}
@@ -141,9 +141,9 @@ export function PaymentChart({ schedule }: PaymentChartProps) {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg p-4 border-2 border-[#1B4E9B]">
+        <div className="bg-gradient-to-r from-rose-50 to-red-50 rounded-lg p-4 border-2 border-[#7B1E2B]">
           <p className="text-sm text-gray-700">
-            <span className="font-semibold">Notice:</span> Early payments are mostly interest (<span className="text-[#FFB800] font-semibold">gold</span>), while later payments are mostly principal (<span className="text-[#20B2AA] font-semibold">teal</span>). This is normal amortization behavior.
+            <span className="font-semibold">Notice:</span> Early payments are mostly interest (<span className="text-[#FFB800] font-semibold">gold</span>), while later payments are mostly principal (<span className="text-[#A6332E] font-semibold">teal</span>). This is normal amortization behavior.
           </p>
         </div>
       </div>

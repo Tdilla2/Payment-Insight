@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Users, Plus, Edit, Trash2, DollarSign, Calendar, Calculator, KeyRound } from 'lucide-react';
+import { dataApi } from '../lib/dataApi';
 
 export interface Client {
   id: string;
@@ -77,28 +78,21 @@ const getDefaultClients = (): Client[] => [
 ];
 
 export function ClientManagement({ onSelectClient }: ClientManagementProps) {
-  // Load clients from localStorage on mount
-  const [clients, setClients] = useState<Client[]>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-      return getDefaultClients();
-    } catch (error) {
-      console.error('Error loading clients from localStorage:', error);
-      return getDefaultClients();
-    }
-  });
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Save clients to localStorage whenever they change
-  useEffect(() => {
+  const reload = async () => {
+    setLoading(true);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
+      setClients(await dataApi.listClients());
     } catch (error) {
-      console.error('Error saving clients to localStorage:', error);
+      console.error('Error loading clients:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [clients]);
+  };
+
+  useEffect(() => { reload(); }, []);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -124,11 +118,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
   };
 
   const resetPassword = (client: Client) => {
-    if (!confirm(`Reset password for ${client.name} to "password123"?\n\nThey will be required to choose a new password on next login.`)) return;
-    setClients(clients.map(c =>
-      c.id === client.id ? { ...c, password: 'password123', mustChangePassword: true } : c
-    ));
-    alert(`Password reset for ${client.name}.\nTemporary password: password123`);
+    alert(`Password resets for ${client.name} are managed securely in AWS Cognito.\n\nUse the "Forgot password" flow on the sign-in screen, or reset it from the Cognito console.`);
   };
 
   const calculateMonthlyPayment = (loanAmount: number, interestRate: number, loanTerm: number): number => {
@@ -153,7 +143,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
     }).format(amount);
   };
 
-  const saveClient = () => {
+  const saveClient = async () => {
     // Validate required fields
     if (!newClient.name || !newClient.name.trim()) {
       alert('Please enter a client name');
@@ -184,52 +174,41 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
       return;
     }
 
-    if (editingId) {
-      const existing = clients.find(c => c.id === editingId);
-      const updated: Client = {
-        ...(existing as Client),
-        ...newClient,
-        id: editingId,
-        phone: newClient.phone || '',
-        nextPaymentDate: newClient.nextPaymentDate || newClient.startDate!,
-        balance: newClient.balance ?? newClient.loanAmount!,
-      } as Client;
-      setClients(clients.map(c => (c.id === editingId ? updated : c)));
+    const payload: Partial<Client> = {
+      ...newClient,
+      phone: newClient.phone || '',
+      nextPaymentDate: newClient.nextPaymentDate || newClient.startDate!,
+      balance: newClient.balance ?? newClient.loanAmount!,
+    };
+
+    try {
+      if (editingId) {
+        await dataApi.updateClient(editingId, payload);
+      } else {
+        await dataApi.createClient({ ...payload, status: 'current' });
+      }
+      await reload();
+      const wasEditing = !!editingId;
+      const name = newClient.name;
+      const email = newClient.email;
       setEditingId(null);
       setShowAddForm(false);
       setNewClient(emptyForm);
-      alert(`✅ ${updated.name}'s information has been updated.`);
-      return;
+      alert(wasEditing
+        ? `✅ ${name}'s information has been updated.`
+        : `✅ Success!\n\nClient "${name}" has been added.\n\nLogin: ${email}\nTemporary password: Temp1234! (they'll be asked to change it on first sign-in)`);
+    } catch (e: any) {
+      alert('Error saving client: ' + (e?.message || 'please try again.'));
     }
-
-    const client: Client = {
-      id: Date.now().toString(),
-      name: newClient.name,
-      email: newClient.email,
-      phone: newClient.phone || '',
-      loanAmount: newClient.loanAmount,
-      monthlyPayment: newClient.monthlyPayment,
-      interestRate: newClient.interestRate,
-      loanTerm: newClient.loanTerm,
-      startDate: newClient.startDate,
-      nextPaymentDate: newClient.nextPaymentDate || newClient.startDate,
-      balance: newClient.balance || newClient.loanAmount,
-      status: 'current',
-      password: 'password123',
-      mustChangePassword: true,
-      billingDay: newClient.billingDay
-    };
-
-    setClients([...clients, client]);
-    setShowAddForm(false);
-    setNewClient(emptyForm);
-
-    alert(`✅ Success!\n\nClient "${client.name}" has been added.\n\nLogin: ${client.email}\nTemporary password: password123 (they'll be asked to change it)`);
   };
 
-  const deleteClient = (id: string) => {
-    if (confirm('Are you sure you want to delete this client?')) {
-      setClients(clients.filter(c => c.id !== id));
+  const deleteClient = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this client? This also removes their login.')) return;
+    try {
+      await dataApi.deleteClient(id);
+      await reload();
+    } catch (e: any) {
+      alert('Error deleting client: ' + (e?.message || 'please try again.'));
     }
   };
 
@@ -240,7 +219,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
       case 'late':
         return 'bg-red-100 text-red-800 border-red-300';
       case 'paid':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-rose-100 text-rose-900 border-rose-300';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-300';
     }
@@ -251,9 +230,9 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#1B4E9B]" />
+            <Users className="w-6 h-6 text-[#7B1E2B]" />
             Client Management
-            <span className="ml-2 px-3 py-1 bg-[#20B2AA] text-white rounded-full text-sm font-bold">
+            <span className="ml-2 px-3 py-1 bg-[#A6332E] text-white rounded-full text-sm font-bold">
               {clients.length}
             </span>
           </h2>
@@ -274,7 +253,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                 setShowAddForm(true);
               }
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors shadow-md"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors shadow-md"
           >
             <Plus className="w-5 h-5" />
             Add Client
@@ -283,10 +262,10 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
       </div>
 
       {showAddForm && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-[#20B2AA]">
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg border-2 border-[#A6332E]">
           <h3 className="text-lg font-semibold mb-4">{editingId ? 'Edit Client' : 'Add New Client'}</h3>
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm text-blue-800">
+          <div className="mb-4 p-3 bg-rose-50 border border-rose-200 rounded-lg">
+            <p className="text-sm text-rose-900">
               <span className="font-semibold">💡 Tip:</span> Enter the loan amount, interest rate, and loan term - the monthly payment will be calculated automatically!
             </p>
           </div>
@@ -300,7 +279,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                 placeholder="Enter client name"
                 value={newClient.name}
                 onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
                 required
               />
             </div>
@@ -313,7 +292,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                 placeholder="client@email.com"
                 value={newClient.email}
                 onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
                 required
               />
             </div>
@@ -326,7 +305,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                 placeholder="Phone"
                 value={newClient.phone}
                 onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               />
             </div>
             <div>
@@ -343,7 +322,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   const monthlyPayment = calculateMonthlyPayment(loanAmount, newClient.interestRate || 0, newClient.loanTerm || 0);
                   setNewClient({ ...newClient, loanAmount, monthlyPayment, balance: loanAmount });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               />
             </div>
             <div>
@@ -361,7 +340,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   const monthlyPayment = calculateMonthlyPayment(newClient.loanAmount || 0, interestRate, newClient.loanTerm || 0);
                   setNewClient({ ...newClient, interestRate, monthlyPayment });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               />
             </div>
             <div>
@@ -378,7 +357,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   const monthlyPayment = calculateMonthlyPayment(newClient.loanAmount || 0, newClient.interestRate || 0, loanTerm);
                   setNewClient({ ...newClient, loanTerm, monthlyPayment });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               />
             </div>
             <div>
@@ -390,11 +369,11 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   type="text"
                   value={newClient.monthlyPayment ? formatCurrency(newClient.monthlyPayment) : '$0.00'}
                   readOnly
-                  className="px-4 py-2 border-2 border-[#20B2AA] rounded-lg bg-teal-50 text-[#1B4E9B] font-bold text-lg w-full"
+                  className="px-4 py-2 border-2 border-[#A6332E] rounded-lg bg-red-50 text-[#7B1E2B] font-bold text-lg w-full"
                   placeholder="$0.00"
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <DollarSign className="w-5 h-5 text-[#20B2AA]" />
+                  <DollarSign className="w-5 h-5 text-[#A6332E]" />
                 </div>
               </div>
             </div>
@@ -424,7 +403,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   }
                   setNewClient({ ...newClient, startDate, nextPaymentDate: nextPayment });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               />
             </div>
             <div>
@@ -444,7 +423,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                     : 'Select start date and loan term'
                 }
                 readOnly
-                className="px-4 py-2 border-2 border-[#20B2AA] rounded-lg bg-teal-50 text-[#1B4E9B] font-semibold w-full"
+                className="px-4 py-2 border-2 border-[#A6332E] rounded-lg bg-red-50 text-[#7B1E2B] font-semibold w-full"
               />
             </div>
             <div>
@@ -457,7 +436,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   const v = e.target.value;
                   setNewClient({ ...newClient, billingDay: v ? Number(v) : undefined });
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] w-full"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               >
                 <option value="">— Don't auto-generate —</option>
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
@@ -472,19 +451,19 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
             </div>
           </div>
           {newClient.monthlyPayment && newClient.monthlyPayment > 0 && (
-            <div className="col-span-full mt-4 p-4 bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg border-2 border-[#1B4E9B]">
+            <div className="col-span-full mt-4 p-4 bg-gradient-to-r from-red-50 to-rose-50 rounded-lg border-2 border-[#7B1E2B]">
               <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <Calculator className="w-5 h-5 text-[#1B4E9B]" />
+                <Calculator className="w-5 h-5 text-[#7B1E2B]" />
                 Loan Summary
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm mb-3">
                 <div className="bg-white p-3 rounded border border-gray-200">
                   <p className="text-gray-600 text-xs">Loan Amount</p>
-                  <p className="font-bold text-[#1B4E9B]">{formatCurrency(newClient.loanAmount || 0)}</p>
+                  <p className="font-bold text-[#7B1E2B]">{formatCurrency(newClient.loanAmount || 0)}</p>
                 </div>
                 <div className="bg-white p-3 rounded border border-gray-200">
                   <p className="text-gray-600 text-xs">Monthly Interest Rate</p>
-                  <p className="font-bold text-[#20B2AA]">{((newClient.interestRate || 0) / 12).toFixed(3)}%</p>
+                  <p className="font-bold text-[#A6332E]">{((newClient.interestRate || 0) / 12).toFixed(3)}%</p>
                 </div>
                 <div className="bg-white p-3 rounded border border-gray-200">
                   <p className="text-gray-600 text-xs">Total Payments</p>
@@ -518,7 +497,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
           <div className="flex gap-2 mt-4 col-span-full">
             <button
               onClick={saveClient}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors font-bold shadow-lg text-lg"
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors font-bold shadow-lg text-lg"
             >
               💾 {editingId ? 'Update Client' : 'Save Client'}
             </button>
@@ -541,7 +520,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white">
+            <tr className="bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white">
               <th className="px-4 py-3 text-left text-sm font-semibold">Client Name</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Contact</th>
               <th className="px-4 py-3 text-right text-sm font-semibold">Balance</th>
@@ -564,7 +543,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   <div>{client.email}</div>
                   <div className="text-xs text-gray-500">{client.phone}</div>
                 </td>
-                <td className="px-4 py-3 text-sm text-right font-semibold text-[#1B4E9B]">
+                <td className="px-4 py-3 text-sm text-right font-semibold text-[#7B1E2B]">
                   {formatCurrency(client.balance)}
                 </td>
                 <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
@@ -580,14 +559,14 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                   <div className="flex items-center justify-center gap-2 flex-wrap">
                     <button
                       onClick={() => onSelectClient(client)}
-                      className="p-2 bg-[#1B4E9B] text-white rounded hover:bg-[#153d7a] transition-colors"
+                      className="p-2 bg-[#7B1E2B] text-white rounded hover:bg-[#5E1620] transition-colors"
                       title="View Client Details"
                     >
                       <DollarSign className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => startEdit(client)}
-                      className="p-2 bg-[#20B2AA] text-white rounded hover:bg-[#1a8f8f] transition-colors"
+                      className="p-2 bg-[#A6332E] text-white rounded hover:bg-[#5E1620] transition-colors"
                       title="Edit Client"
                     >
                       <Edit className="w-4 h-4" />

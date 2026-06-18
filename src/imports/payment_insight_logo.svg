@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 185" width="260" height="185" role="img" aria-label="Payment Insight">
+  <defs>
+    <linearGradient id="pi-burgundy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8B2230"/>
+      <stop offset="1" stop-color="#4F1019"/>
+    </linearGradient>
+    <linearGradient id="pi-keys" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7ECD6"/>
+      <stop offset="1" stop-color="#E9C46A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Brand badge -->
+  <circle cx="130" cy="68" r="60" fill="url(#pi-burgundy)"/>
+  <circle cx="130" cy="68" r="60" fill="none" stroke="#E9C46A" stroke-width="2" opacity="0.6"/>
+
+  <!-- Floating math symbols (gold) -->
+  <g fill="#E9C46A" font-family="Arial, Helvetica, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="92"  y="52" font-size="20">&#8722;</text>
+    <text x="116" y="48" font-size="18">=</text>
+    <text x="140" y="46" font-size="20">&#215;</text>
+    <text x="164" y="48" font-size="20">&#247;</text>
+    <text x="186" y="54" font-size="22">+</text>
+  </g>
+
+  <!-- Calculator keypad (perspective trapezoid) -->
+  <g>
+    <polygon points="104,70 156,70 176,104 84,104" fill="url(#pi-keys)" stroke="#4F1019" stroke-width="2" stroke-linejoin="round"/>
+    <!-- key grid -->
+    <g stroke="#7B1E2B" stroke-width="1.4" opacity="0.55">
+      <line x1="121.5" y1="70" x2="114" y2="104"/>
+      <line x1="139"   y1="70" x2="139" y2="104"/>
+      <line x1="156.5" y1="70" x2="164" y2="104"/>
+      <line x1="98"  y1="81.5" x2="162" y2="81.5"/>
+      <line x1="91"  y1="93"   x2="169" y2="93"/>
+    </g>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="130" y="166" text-anchor="middle" font-family="Arial, Helvetica, sans-serif"
+        font-size="26" font-weight="800" letter-spacing="1.5" fill="#7B1E2B">PAYMENT INSIGHT</text>
+</svg>

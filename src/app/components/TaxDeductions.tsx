@@ -56,7 +56,7 @@ export function TaxDeductions({ schedule, loanType, initialTaxRate = 22 }: TaxDe
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold flex items-center gap-2">
-          <Receipt className="w-6 h-6 text-[#1B4E9B]" />
+          <Receipt className="w-6 h-6 text-[#7B1E2B]" />
           Tax Deductions (Mortgage Interest)
         </h2>
         <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export function TaxDeductions({ schedule, loanType, initialTaxRate = 22 }: TaxDe
             id="taxRate"
             value={taxRate}
             onChange={(e) => setTaxRate(Number(e.target.value))}
-            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] text-sm"
+            className="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] text-sm"
           >
             <option value="10">10%</option>
             <option value="12">12%</option>
@@ -81,9 +81,9 @@ export function TaxDeductions({ schedule, loanType, initialTaxRate = 22 }: TaxDe
         </div>
       </div>
 
-      <div className="mb-6 bg-blue-50 rounded-lg p-4 border border-blue-200">
+      <div className="mb-6 bg-rose-50 rounded-lg p-4 border border-rose-200">
         <div className="flex items-start gap-3">
-          <TrendingDown className="w-5 h-5 text-blue-600 mt-1" />
+          <TrendingDown className="w-5 h-5 text-rose-700 mt-1" />
           <div>
             <h3 className="font-semibold text-gray-800 mb-2">Estimated Tax Savings</h3>
             <p className="text-sm text-gray-600 mb-3">

@@ -28,3 +28,12 @@ Thumbs.db
 
 # Temp
 *.tmp
+
+# Terraform / OpenTofu (state contains secrets — never commit)
+infra/.terraform/
+infra/build/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+crash.*.log

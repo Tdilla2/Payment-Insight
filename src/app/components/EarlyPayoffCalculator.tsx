@@ -84,7 +84,7 @@ export function EarlyPayoffCalculator({
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
       <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Zap className="w-6 h-6 text-[#1B4E9B]" />
+        <Zap className="w-6 h-6 text-[#7B1E2B]" />
         Early Payoff Calculator
       </h2>
 
@@ -99,10 +99,10 @@ export function EarlyPayoffCalculator({
             max={termYears}
             value={targetPayoffYears}
             onChange={(e) => setTargetPayoffYears(Number(e.target.value))}
-            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#20B2AA]"
+            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#A6332E]"
           />
           <div className="w-20 text-center">
-            <span className="text-2xl font-bold text-[#1B4E9B]">{targetPayoffYears}</span>
+            <span className="text-2xl font-bold text-[#7B1E2B]">{targetPayoffYears}</span>
             <span className="text-sm text-gray-600 ml-1">years</span>
           </div>
         </div>
@@ -113,21 +113,21 @@ export function EarlyPayoffCalculator({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-[#1B4E9B]">
+        <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border-2 border-[#7B1E2B]">
           <div className="flex items-center gap-2 mb-2">
-            <DollarSign className="w-4 h-4 text-[#1B4E9B]" />
+            <DollarSign className="w-4 h-4 text-[#7B1E2B]" />
             <p className="text-sm font-medium text-gray-700">Required Payment</p>
           </div>
-          <p className="text-2xl font-bold text-[#1B4E9B]">{formatCurrency(savings.requiredPayment)}</p>
+          <p className="text-2xl font-bold text-[#7B1E2B]">{formatCurrency(savings.requiredPayment)}</p>
           <p className="text-xs text-gray-600 mt-1">Per payment period</p>
         </div>
 
-        <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border-2 border-[#20B2AA]">
+        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border-2 border-[#A6332E]">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingDown className="w-4 h-4 text-[#20B2AA]" />
+            <TrendingDown className="w-4 h-4 text-[#A6332E]" />
             <p className="text-sm font-medium text-gray-700">Extra Payment</p>
           </div>
-          <p className="text-2xl font-bold text-[#20B2AA]">
+          <p className="text-2xl font-bold text-[#A6332E]">
             {savings.extraPayment > 0 ? '+' : ''}{formatCurrency(savings.extraPayment)}
           </p>
           <p className="text-xs text-gray-600 mt-1">Additional per period</p>
@@ -142,22 +142,22 @@ export function EarlyPayoffCalculator({
           <p className="text-xs text-gray-600 mt-1">Total savings</p>
         </div>
 
-        <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border-2 border-[#1B4E9B]">
+        <div className="bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg p-4 border-2 border-[#7B1E2B]">
           <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-4 h-4 text-[#1B4E9B]" />
+            <Calendar className="w-4 h-4 text-[#7B1E2B]" />
             <p className="text-sm font-medium text-gray-700">Time Saved</p>
           </div>
-          <p className="text-2xl font-bold text-[#1B4E9B]">{savings.timeSaved}</p>
+          <p className="text-2xl font-bold text-[#7B1E2B]">{savings.timeSaved}</p>
           <p className="text-xs text-gray-600 mt-1">Years earlier</p>
         </div>
       </div>
 
-      <div className="mt-6 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg p-4 border-2 border-[#20B2AA]">
+      <div className="mt-6 bg-gradient-to-r from-rose-50 to-red-50 rounded-lg p-4 border-2 border-[#A6332E]">
         <p className="text-sm text-gray-700">
           <span className="font-semibold">Summary:</span> By paying{' '}
-          <span className="font-bold text-[#1B4E9B]">{formatCurrency(savings.requiredPayment)}</span> instead of{' '}
+          <span className="font-bold text-[#7B1E2B]">{formatCurrency(savings.requiredPayment)}</span> instead of{' '}
           <span className="font-bold">{formatCurrency(basePayment)}</span>, you'll pay off your loan in{' '}
-          <span className="font-bold text-[#20B2AA]">{targetPayoffYears} years</span> instead of{' '}
+          <span className="font-bold text-[#A6332E]">{targetPayoffYears} years</span> instead of{' '}
           <span className="font-bold">{termYears} years</span>, saving{' '}
           <span className="font-bold text-[#FFB800]">{formatCurrency(savings.interestSaved)}</span> in interest!
         </p>

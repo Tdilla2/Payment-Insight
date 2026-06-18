@@ -36,12 +36,12 @@ export function AmortizationSchedule({ schedule }: AmortizationScheduleProps) {
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold flex items-center gap-2">
-          <Table className="w-6 h-6 text-[#1B4E9B]" />
+          <Table className="w-6 h-6 text-[#7B1E2B]" />
           Amortization Schedule
         </h2>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors shadow-md"
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors shadow-md"
         >
           {isExpanded ? (
             <>
@@ -82,7 +82,7 @@ export function AmortizationSchedule({ schedule }: AmortizationScheduleProps) {
                 <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
                   {formatCurrency(payment.payment)}
                 </td>
-                <td className="px-4 py-3 text-sm text-right text-[#20B2AA] font-medium">
+                <td className="px-4 py-3 text-sm text-right text-[#A6332E] font-medium">
                   {formatCurrency(payment.principal)}
                 </td>
                 <td className="px-4 py-3 text-sm text-right text-[#FFB800] font-medium">
@@ -119,7 +119,7 @@ export function AmortizationSchedule({ schedule }: AmortizationScheduleProps) {
         </div>
       )}
 
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="mt-4 p-4 bg-rose-50 rounded-lg border border-rose-200">
         <p className="text-sm text-gray-700">
           <span className="font-semibold">Understanding the schedule:</span> Each row shows how your payment is split between principal (paying down the loan) and interest (cost of borrowing). Early payments have more interest, while later payments have more principal.
         </p>

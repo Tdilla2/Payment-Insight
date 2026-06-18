@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Calculator, Users, FileText, CreditCard, Link2, DollarSign, Table, LogOut, Shield, User } from 'lucide-react';
 import { LoanCalculator } from './components/LoanCalculator';
 import { ClientManagement, Client } from './components/ClientManagement';
@@ -9,7 +9,8 @@ import { OnlinePayment } from './components/OnlinePayment';
 import { ClientAmortizationSchedule } from './components/ClientAmortizationSchedule';
 import { LoginScreen, UserSession } from './components/LoginScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
-import { autoGenerateInvoicesForThisMonth } from './lib/autoGenerateInvoices';
+import { dataApi } from './lib/dataApi';
+import { getTokens, signOut } from './lib/cognito';
 
 type TabType = 'calculator' | 'clients' | 'invoices' | 'payments' | 'quickbooks' | 'online-payment' | 'amortization';
 
@@ -20,105 +21,45 @@ interface PayableInvoice {
   amount: number;
 }
 
-const SESSION_KEY = 'payment_insight_session';
-
 export default function App() {
-  const [session, setSession] = useState<UserSession | null>(() => {
-    try {
-      const stored = localStorage.getItem(SESSION_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [session, setSession] = useState<UserSession | null>(null);
+  const [booting, setBooting] = useState(true);
+  const [loggedInClient, setLoggedInClient] = useState<Client | null>(null);
+  const [pendingNewPassword, setPendingNewPassword] = useState<{ email: string; session: string } | null>(null);
 
   const [activeTab, setActiveTab] = useState<TabType>('calculator');
   const [payableInvoice, setPayableInvoice] = useState<PayableInvoice | null>(null);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(() => {
-    try {
-      const stored = localStorage.getItem('payment_insight_selected_client');
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  // Persist session
-  useEffect(() => {
+  // Load the signed-in identity from the API (using the stored Cognito token).
+  const bootstrap = async () => {
+    setBooting(true);
     try {
-      if (session) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      const me = await dataApi.me();
+      if (me.role === 'superadmin') {
+        setSession({ role: 'superadmin' });
+        setActiveTab('calculator');
       } else {
-        localStorage.removeItem(SESSION_KEY);
-      }
-    } catch (error) {
-      console.error('Error saving session:', error);
-    }
-  }, [session]);
-
-  // For client role: look up their client record
-  const loggedInClient = useMemo<Client | null>(() => {
-    if (!session || session.role !== 'client') return null;
-    try {
-      const stored = localStorage.getItem('payment_insight_clients');
-      const clients: Client[] = stored ? JSON.parse(stored) : [];
-      return clients.find(c => c.id === session.clientId) || null;
-    } catch {
-      return null;
-    }
-  }, [session, activeTab, mustChangePassword]);
-
-  // When a client logs in, lock selectedClient to their own record so downstream components use it
-  useEffect(() => {
-    if (session?.role === 'client' && loggedInClient) {
-      setSelectedClient(loggedInClient);
-    }
-  }, [session, loggedInClient]);
-
-  // Default tab after login + auto-run invoice generation for super admin
-  useEffect(() => {
-    if (session?.role === 'client') {
-      setActiveTab('invoices');
-    } else if (session?.role === 'superadmin') {
-      setActiveTab('calculator');
-      const result = autoGenerateInvoicesForThisMonth();
-      if (result.created > 0) {
-        console.log(`Auto-generated ${result.created} invoice(s):`, result.createdForClients);
-      }
-    }
-  }, [session?.role]);
-
-  // Save selected client to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      if (selectedClient) {
-        localStorage.setItem('payment_insight_selected_client', JSON.stringify(selectedClient));
-      } else {
-        localStorage.removeItem('payment_insight_selected_client');
-      }
-    } catch (error) {
-      console.error('Error saving selected client:', error);
-    }
-  }, [selectedClient]);
-
-  // Sync selected client with latest data from clients list when switching tabs
-  useEffect(() => {
-    if (selectedClient) {
-      try {
-        const stored = localStorage.getItem('payment_insight_clients');
-        if (stored) {
-          const clients = JSON.parse(stored) as Client[];
-          const updatedClient = clients.find(c => c.id === selectedClient.id);
-          if (updatedClient && JSON.stringify(updatedClient) !== JSON.stringify(selectedClient)) {
-            setSelectedClient(updatedClient);
-          }
+        setSession({ role: 'client', clientId: me.clientId ?? '' });
+        if (me.clientId) {
+          const c = await dataApi.getClient(me.clientId).catch(() => null);
+          setLoggedInClient(c);
+          setSelectedClient(c);
         }
-      } catch (error) {
-        console.error('Error syncing client data:', error);
+        setActiveTab('invoices');
       }
+    } catch {
+      signOut();
+      setSession(null);
+    } finally {
+      setBooting(false);
     }
-  }, [activeTab]);
+  };
+
+  useEffect(() => {
+    if (getTokens()) bootstrap();
+    else setBooting(false);
+  }, []);
 
   const allTabs: { id: TabType; label: string; icon: typeof Calculator }[] = [
     { id: 'calculator', label: 'Loan Calculator', icon: Calculator },
@@ -141,98 +82,120 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    signOut();
     setSession(null);
-    setMustChangePassword(false);
+    setLoggedInClient(null);
     setSelectedClient(null);
     setPayableInvoice(null);
+    setPendingNewPassword(null);
   };
 
   // --- render ---
 
-  if (!session) {
+  if (booting) {
     return (
-      <LoginScreen
-        onLogin={(newSession, needsChange) => {
-          setSession(newSession);
-          setMustChangePassword(needsChange);
-        }}
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-[#7B1E2B] font-semibold animate-pulse">Loading…</div>
+      </div>
+    );
+  }
+
+  if (pendingNewPassword) {
+    return (
+      <ChangePasswordScreen
+        email={pendingNewPassword.email}
+        cognitoSession={pendingNewPassword.session}
+        onPasswordChanged={() => { setPendingNewPassword(null); bootstrap(); }}
+        onCancel={handleLogout}
       />
     );
   }
 
-  if (session.role === 'client' && mustChangePassword) {
+  if (!session) {
     return (
-      <ChangePasswordScreen
-        clientId={session.clientId}
-        onPasswordChanged={() => setMustChangePassword(false)}
-        onCancel={handleLogout}
+      <LoginScreen
+        onAuthenticated={() => bootstrap()}
+        onNewPasswordRequired={(email, cognitoSession) => setPendingNewPassword({ email, session: cognitoSession })}
       />
     );
   }
 
   const roleLabel = session.role === 'superadmin' ? 'Super Admin' : loggedInClient?.name || 'Client';
   const RoleIcon = session.role === 'superadmin' ? Shield : User;
+  const activeTabLabel = visibleTabs.find(t => t.id === activeTab)?.label ?? 'Payment Insight';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-start mb-4 print:hidden">
-          <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow border border-gray-200">
-            <RoleIcon className="w-4 h-4 text-[#1B4E9B]" />
-            <span className="text-sm text-gray-700">
-              Signed in as <span className="font-semibold text-[#1B4E9B]">{roleLabel}</span>
+    <div className="min-h-screen flex bg-gray-100">
+      {/* Sidebar */}
+      <aside className="w-20 md:w-64 shrink-0 bg-gradient-to-b from-[#7B1E2B] to-[#4F1019] text-white flex flex-col min-h-screen print:hidden">
+        <div className="px-4 md:px-6 py-6 border-b border-white/10 flex flex-col items-center md:items-start gap-3">
+          <img
+            src="/payment_insight_mark.svg"
+            alt="Payment Insight Logo"
+            className="w-12 md:w-20 h-auto bg-white rounded-xl p-1.5 shadow-md"
+          />
+          <h1 className="hidden md:block text-xl font-bold tracking-wide">PAYMENT INSIGHT</h1>
+        </div>
+
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {visibleTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                title={tab.label}
+                className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-3 rounded-lg font-semibold transition-all ${
+                  isActive
+                    ? 'bg-white text-[#7B1E2B] shadow-md'
+                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                <span className="hidden md:inline">{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-3 border-t border-white/10 space-y-2">
+          <div className="flex items-center justify-center md:justify-start gap-2 px-2 py-2 rounded-lg bg-white/10">
+            <RoleIcon className="w-4 h-4 shrink-0 text-[#E8B4BC]" />
+            <span className="hidden md:inline text-sm text-white/90 truncate">
+              {roleLabel}
             </span>
           </div>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg shadow border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition"
+            className="w-full flex items-center justify-center md:justify-start gap-2 px-3 py-2 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition"
           >
-            <LogOut className="w-4 h-4" />
-            Sign Out
+            <LogOut className="w-4 h-4 shrink-0" />
+            <span className="hidden md:inline">Sign Out</span>
           </button>
         </div>
+      </aside>
 
-        <div className="text-center mb-8 print:mb-4">
-          <div className="flex flex-col items-center justify-center gap-3 mb-4">
-            <img
-              src="/src/imports/payment_insight_logo_new.JPG"
-              alt="Payment Insight Logo"
-              className="w-48 h-auto"
-            />
-            <div>
-              <h1 className="text-5xl font-bold text-[#1B4E9B]">PAYMENT INSIGHT</h1>
-            </div>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between print:hidden">
+          <div>
+            <h2 className="text-2xl font-bold text-[#7B1E2B]">{activeTabLabel}</h2>
+            <p className="text-gray-600 text-sm">
+              {session.role === 'superadmin'
+                ? 'Manage loans, clients, invoices, and payments all in one place'
+                : 'View your invoices, payments, and loan schedule'}
+            </p>
           </div>
-          <p className="text-gray-700 text-lg">
-            {session.role === 'superadmin'
-              ? 'Manage loans, clients, invoices, and payments all in one place'
-              : 'View your invoices, payments, and loan schedule'}
-          </p>
-        </div>
-
-        <div className="mb-6 bg-white rounded-lg shadow-lg p-2 print:hidden">
-          <div className="flex flex-wrap gap-2">
-            {visibleTabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-              );
-            })}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+            <RoleIcon className="w-4 h-4 text-[#7B1E2B]" />
+            <span className="text-sm text-gray-700">
+              Signed in as <span className="font-semibold text-[#7B1E2B]">{roleLabel}</span>
+            </span>
           </div>
-        </div>
+        </header>
 
-        <div className="space-y-6">
+        <div className="p-4 md:p-8 max-w-7xl w-full mx-auto space-y-6">
           {session.role === 'superadmin' && activeTab === 'calculator' && <LoanCalculator />}
           {session.role === 'superadmin' && activeTab === 'clients' && (
             <ClientManagement onSelectClient={handleSelectClient} />
@@ -273,6 +236,7 @@ export default function App() {
               amount={payableInvoice?.amount ?? loggedInClient?.monthlyPayment ?? selectedClient?.monthlyPayment ?? 1580.17}
               invoiceNumber={payableInvoice?.invoiceNumber || 'INV-1001'}
               clientName={payableInvoice?.clientName || loggedInClient?.name || selectedClient?.name || 'Demo Client'}
+              onPaid={() => setActiveTab('payments')}
             />
           )}
         </div>

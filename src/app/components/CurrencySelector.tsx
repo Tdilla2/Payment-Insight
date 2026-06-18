@@ -28,7 +28,7 @@ export function CurrencySelector({ selectedCurrency, onCurrencyChange }: Currenc
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 print:hidden">
       <div className="flex items-center gap-3">
-        <DollarSign className="w-5 h-5 text-[#1B4E9B]" />
+        <DollarSign className="w-5 h-5 text-[#7B1E2B]" />
         <label htmlFor="currency" className="font-medium text-gray-700">
           Currency:
         </label>
@@ -36,7 +36,7 @@ export function CurrencySelector({ selectedCurrency, onCurrencyChange }: Currenc
           id="currency"
           value={selectedCurrency}
           onChange={(e) => onCurrencyChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
         >
           {currencies.map((currency) => (
             <option key={currency.code} value={currency.code}>

@@ -1,0 +1,22 @@
+{
+  "name": "payment-insight-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pg": "8.13.1",
+    "stripe": "17.5.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1072.0",
+    "@types/aws-lambda": "8.10.145",
+    "@types/node": "20.17.6",
+    "@types/pg": "8.11.10",
+    "esbuild": "0.24.0",
+    "typescript": "5.6.3"
+  }
+}

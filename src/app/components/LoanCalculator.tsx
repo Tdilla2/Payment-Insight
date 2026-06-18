@@ -221,7 +221,7 @@ export function LoanCalculator() {
 
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-          <Calculator className="w-6 h-6 text-[#1B4E9B]" />
+          <Calculator className="w-6 h-6 text-[#7B1E2B]" />
           Loan Details
         </h2>
 
@@ -235,7 +235,7 @@ export function LoanCalculator() {
             </label>
             <select
               {...register('loanType')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
             >
               {Object.entries(loanTypePresets).map(([key, preset]) => {
                 const Icon = preset.icon;
@@ -260,7 +260,7 @@ export function LoanCalculator() {
                 type="number"
                 step="1000"
                 {...register('purchasePrice', { required: true, min: 1 })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
               />
               {errors.purchasePrice && <span className="text-red-500 text-sm">Please enter a valid amount</span>}
             </div>
@@ -276,7 +276,7 @@ export function LoanCalculator() {
                 type="number"
                 step="1000"
                 {...register('downPayment', { required: true, min: 0 })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
               />
               {errors.downPayment && <span className="text-red-500 text-sm">Please enter a valid down payment</span>}
             </div>
@@ -292,7 +292,7 @@ export function LoanCalculator() {
                 type="number"
                 step="1000"
                 {...register('principal', { required: true, min: 1 })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
                 readOnly
               />
               {errors.principal && <span className="text-red-500 text-sm">Please enter a valid loan amount</span>}
@@ -309,7 +309,7 @@ export function LoanCalculator() {
                 type="number"
                 step="0.01"
                 {...register('annualRate', { required: true, min: 0.01, max: 100 })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
               />
               {errors.annualRate && <span className="text-red-500 text-sm">Please enter a valid interest rate</span>}
             </div>
@@ -325,7 +325,7 @@ export function LoanCalculator() {
                 type="number"
                 step="1"
                 {...register('termYears', { required: true, min: 1, max: 50 })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
               />
               {errors.termYears && <span className="text-red-500 text-sm">Please enter a valid loan term</span>}
             </div>
@@ -339,7 +339,7 @@ export function LoanCalculator() {
               </label>
               <select
                 {...register('paymentFrequency')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
               >
                 <option value="monthly">Monthly</option>
                 <option value="biweekly">Bi-weekly</option>
@@ -358,7 +358,7 @@ export function LoanCalculator() {
                 type="number"
                 step="10"
                 {...register('extraPayment', { min: 0 })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-transparent"
                 placeholder="0"
               />
               <p className="text-xs text-gray-500 mt-1">Add extra payment per period to pay off loan faster</p>
@@ -367,7 +367,7 @@ export function LoanCalculator() {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white py-3 px-6 rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg"
+            className="w-full bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white py-3 px-6 rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg"
           >
             <Calculator className="w-5 h-5" />
             Calculate Loan
@@ -383,7 +383,7 @@ export function LoanCalculator() {
           <div className="print:hidden">
             <button
               onClick={() => setShowEarlyPayoff(!showEarlyPayoff)}
-              className="w-full bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white py-3 px-6 rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg"
+              className="w-full bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white py-3 px-6 rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors font-semibold flex items-center justify-center gap-2 shadow-lg"
             >
               <Zap className="w-5 h-5" />
               {showEarlyPayoff ? 'Hide' : 'Show'} Early Payoff Calculator

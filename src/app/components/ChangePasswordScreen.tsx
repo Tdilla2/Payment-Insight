@@ -1,58 +1,54 @@
 import { useState, FormEvent } from 'react';
 import { Lock, LogOut, Shield } from 'lucide-react';
-import { Client } from './ClientManagement';
+import { completeNewPassword } from '../lib/cognito';
 
 interface ChangePasswordScreenProps {
-  clientId: string;
+  email: string;
+  cognitoSession: string;
   onPasswordChanged: () => void;
   onCancel: () => void;
 }
 
-export function ChangePasswordScreen({ clientId, onPasswordChanged, onCancel }: ChangePasswordScreenProps) {
+export function ChangePasswordScreen({ email, cognitoSession, onPasswordChanged, onCancel }: ChangePasswordScreenProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-    if (newPassword === 'password123') {
-      setError('Please choose a password different from the default.');
+    // Cognito policy: min 8 chars, upper, lower, number.
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)) {
+      setError('Password must be at least 8 characters and include upper, lower, and a number.');
       return;
     }
     if (newPassword !== confirm) {
       setError('Passwords do not match.');
       return;
     }
-
+    setSaving(true);
     try {
-      const stored = localStorage.getItem('payment_insight_clients');
-      const clients: Client[] = stored ? JSON.parse(stored) : [];
-      const updated = clients.map(c =>
-        c.id === clientId ? { ...c, password: newPassword, mustChangePassword: false } : c
-      );
-      localStorage.setItem('payment_insight_clients', JSON.stringify(updated));
+      await completeNewPassword(email, newPassword, cognitoSession);
       onPasswordChanged();
-    } catch {
-      setError('Error saving password. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'Error saving password. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-stone-50 to-red-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
-        <div className="h-2 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA]" />
+        <div className="h-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E]" />
         <div className="p-8">
           <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#1B4E9B] to-[#20B2AA] flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#7B1E2B] to-[#A6332E] flex items-center justify-center">
               <Shield className="w-7 h-7 text-white" />
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-center text-[#1B4E9B]">Set a New Password</h1>
+          <h1 className="text-2xl font-bold text-center text-[#7B1E2B]">Set a New Password</h1>
           <p className="text-center text-gray-600 text-sm mb-6">
             For security, please change your default password before continuing.
           </p>
@@ -65,7 +61,7 @@ export function ChangePasswordScreen({ clientId, onPasswordChanged, onCancel }: 
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-[#20B2AA]"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-[#A6332E]"
               />
             </div>
             <div>
@@ -76,7 +72,7 @@ export function ChangePasswordScreen({ clientId, onPasswordChanged, onCancel }: 
                 onChange={(e) => setConfirm(e.target.value)}
                 required
                 minLength={6}
-                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-[#20B2AA]"
+                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-[#A6332E]"
               />
             </div>
             {error && (
@@ -86,9 +82,10 @@ export function ChangePasswordScreen({ clientId, onPasswordChanged, onCancel }: 
             )}
             <button
               type="submit"
-              className="w-full px-4 py-3 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors font-semibold shadow-lg flex items-center justify-center gap-2"
+              disabled={saving}
+              className="w-full px-4 py-3 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#7B1E2B] transition-colors font-semibold shadow-lg flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              <Lock className="w-4 h-4" /> Save New Password
+              <Lock className="w-4 h-4" /> {saving ? 'Saving…' : 'Save New Password'}
             </button>
             <button
               type="button"

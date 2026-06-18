@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" width="140" height="140" role="img" aria-label="Payment Insight">
+  <defs>
+    <linearGradient id="pim-burgundy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8B2230"/>
+      <stop offset="1" stop-color="#4F1019"/>
+    </linearGradient>
+    <linearGradient id="pim-keys" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#F7ECD6"/>
+      <stop offset="1" stop-color="#E9C46A"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Badge -->
+  <circle cx="70" cy="70" r="64" fill="url(#pim-burgundy)"/>
+  <circle cx="70" cy="70" r="64" fill="none" stroke="#E9C46A" stroke-width="3" opacity="0.65"/>
+
+  <!-- Floating math symbols (gold) -->
+  <g fill="#E9C46A" font-family="Arial, Helvetica, sans-serif" font-weight="700" text-anchor="middle">
+    <text x="38"  y="56" font-size="22">&#8722;</text>
+    <text x="55"  y="51" font-size="20">=</text>
+    <text x="72"  y="49" font-size="22">&#215;</text>
+    <text x="89"  y="51" font-size="22">&#247;</text>
+    <text x="105" y="57" font-size="24">+</text>
+  </g>
+
+  <!-- Calculator keypad (perspective trapezoid) -->
+  <polygon points="46,74 94,74 112,108 28,108" fill="url(#pim-keys)" stroke="#4F1019" stroke-width="2.5" stroke-linejoin="round"/>
+  <g stroke="#7B1E2B" stroke-width="1.6" opacity="0.55">
+    <line x1="62" y1="74" x2="54" y2="108"/>
+    <line x1="78" y1="74" x2="78" y2="108"/>
+    <line x1="94" y1="74" x2="102" y2="108"/>
+    <line x1="40" y1="85" x2="100" y2="85"/>
+    <line x1="34" y1="96" x2="106" y2="96"/>
+  </g>
+</svg>

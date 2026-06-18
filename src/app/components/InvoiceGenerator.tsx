@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileText, Send, Download, AlertCircle, Users, ArrowLeft, Printer, Mail, Phone, Trash2 } from 'lucide-react';
 import { Client } from './ClientManagement';
+import { dataApi } from '../lib/dataApi';
 
 export interface Invoice {
   id: string;
@@ -32,36 +33,27 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
   const [selectedClient, setSelectedClient] = useState<Client | null>(client);
   const [existingInvoices, setExistingInvoices] = useState<Invoice[]>([]);
 
-  const loadInvoices = () => {
+  const loadInvoices = async () => {
     try {
-      const stored = localStorage.getItem('payment_insight_invoices');
-      setExistingInvoices(stored ? JSON.parse(stored) : []);
+      setExistingInvoices(await dataApi.listInvoices());
     } catch {
       setExistingInvoices([]);
     }
   };
 
-  // Load clients + invoices from localStorage
+  // Load clients + invoices from the API
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('payment_insight_clients');
-      if (stored) {
-        setAllClients(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error('Error loading clients:', error);
-    }
+    dataApi.listClients()
+      .then(setAllClients)
+      .catch((error) => console.error('Error loading clients:', error));
     loadInvoices();
   }, []);
 
-  const deleteExistingInvoice = (inv: Invoice) => {
+  const deleteExistingInvoice = async (inv: Invoice) => {
     if (!confirm(`Delete invoice ${inv.invoiceNumber} for ${inv.clientName}?\n\nThis cannot be undone.`)) return;
     try {
-      const stored = localStorage.getItem('payment_insight_invoices');
-      const invoices: Invoice[] = stored ? JSON.parse(stored) : [];
-      const remaining = invoices.filter(i => i.id !== inv.id);
-      localStorage.setItem('payment_insight_invoices', JSON.stringify(remaining));
-      setExistingInvoices(remaining);
+      await dataApi.deleteInvoice(inv.id);
+      setExistingInvoices(prev => prev.filter(i => i.id !== inv.id));
     } catch (error) {
       console.error('Error deleting invoice:', error);
       alert('Error deleting invoice.');
@@ -88,10 +80,10 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#1B4E9B]" />
+            <Users className="w-6 h-6 text-[#7B1E2B]" />
             Select Client for Invoice
           </h2>
-          <span className="px-3 py-1 bg-[#20B2AA] text-white rounded-full text-sm font-bold">
+          <span className="px-3 py-1 bg-[#A6332E] text-white rounded-full text-sm font-bold">
             {allClients.length} Clients
           </span>
         </div>
@@ -101,9 +93,9 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
             <FileText className="w-20 h-20 mx-auto mb-4 text-gray-300" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No Clients Found</h3>
             <p className="text-gray-600 mb-4">You need to add clients before creating invoices.</p>
-            <div className="inline-block p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <div className="inline-block p-4 bg-rose-50 rounded-lg border-2 border-rose-200">
               <p className="text-sm text-gray-700">
-                💡 <span className="font-semibold">Tip:</span> Go to the <span className="font-semibold text-[#1B4E9B]">Clients</span> tab to add your first client.
+                💡 <span className="font-semibold">Tip:</span> Go to the <span className="font-semibold text-[#7B1E2B]">Clients</span> tab to add your first client.
               </p>
             </div>
           </div>
@@ -118,7 +110,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                 const chosen = allClients.find(c => c.id === e.target.value);
                 if (chosen) setSelectedClient(chosen);
               }}
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA] focus:border-[#20B2AA] text-lg bg-white"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] focus:border-[#A6332E] text-lg bg-white"
             >
               <option value="" disabled>
                 -- Select a client --
@@ -137,7 +129,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
             <div className="pt-6 border-t border-gray-200">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#1B4E9B]" />
+                  <FileText className="w-5 h-5 text-[#7B1E2B]" />
                   Existing Invoices
                 </h3>
                 <span className="text-sm text-gray-500">{existingInvoices.length} total</span>
@@ -166,12 +158,12 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                             <td className="px-3 py-2 font-mono text-xs">{inv.invoiceNumber}</td>
                             <td className="px-3 py-2">{inv.clientName}</td>
                             <td className="px-3 py-2 text-gray-600">{inv.dueDate}</td>
-                            <td className="px-3 py-2 text-right font-semibold text-[#1B4E9B]">{formatCurrency(inv.totalAmount)}</td>
+                            <td className="px-3 py-2 text-right font-semibold text-[#7B1E2B]">{formatCurrency(inv.totalAmount)}</td>
                             <td className="px-3 py-2 text-center">
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${
                                 inv.status === 'paid' ? 'bg-green-50 text-green-700 border-green-200'
                                 : inv.status === 'overdue' ? 'bg-red-50 text-red-700 border-red-200'
-                                : inv.status === 'sent' ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : inv.status === 'sent' ? 'bg-rose-50 text-rose-800 border-rose-200'
                                 : 'bg-gray-50 text-gray-700 border-gray-200'
                               }`}>
                                 {inv.status.toUpperCase()}
@@ -223,49 +215,38 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
   const invoiceDate = new Date().toISOString().split('T')[0];
   const dueDate = selectedClient.nextPaymentDate;
 
-  const generateInvoice = () => {
-    const invoice: Invoice = {
-      id: Date.now().toString(),
-      clientId: selectedClient.id,
-      clientName: selectedClient.name,
-      clientEmail: selectedClient.email,
-      invoiceNumber,
-      invoiceDate,
-      dueDate,
-      amount: selectedClient.monthlyPayment,
-      lateFee,
-      totalAmount,
-      status: lateFee > 0 ? 'overdue' : 'sent',
-      description: `Loan Payment - ${invoiceDate}`
-    };
+  const generateInvoice = async () => {
+    // Block duplicates: one invoice per client per month/year (based on due date)
+    const newDue = new Date(dueDate);
+    const duplicate = existingInvoices.find(inv => {
+      if (inv.clientId !== selectedClient.id) return false;
+      const existingDue = new Date(inv.dueDate);
+      return existingDue.getFullYear() === newDue.getFullYear()
+        && existingDue.getMonth() === newDue.getMonth();
+    });
+    if (duplicate) {
+      const monthLabel = newDue.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      alert(`Duplicate invoice blocked.\n\n${selectedClient.name} already has invoice ${duplicate.invoiceNumber} for ${monthLabel}.`);
+      return;
+    }
 
     try {
-      // Load existing invoices
-      const stored = localStorage.getItem('payment_insight_invoices');
-      const invoices: Invoice[] = stored ? JSON.parse(stored) : [];
-
-      // Block duplicates: one invoice per client per month/year (based on due date)
-      const newDue = new Date(invoice.dueDate);
-      const duplicate = invoices.find(inv => {
-        if (inv.clientId !== invoice.clientId) return false;
-        const existingDue = new Date(inv.dueDate);
-        return existingDue.getFullYear() === newDue.getFullYear()
-          && existingDue.getMonth() === newDue.getMonth();
+      await dataApi.createInvoice({
+        clientId: selectedClient.id,
+        invoiceNumber,
+        invoiceDate,
+        dueDate,
+        amount: selectedClient.monthlyPayment,
+        lateFee,
+        totalAmount,
+        status: lateFee > 0 ? 'overdue' : 'sent',
+        description: `Loan Payment - ${invoiceDate}`,
       });
-
-      if (duplicate) {
-        const monthLabel = newDue.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        alert(`Duplicate invoice blocked.\n\n${selectedClient.name} already has invoice ${duplicate.invoiceNumber} for ${monthLabel}.`);
-        return;
-      }
-
-      invoices.push(invoice);
-      localStorage.setItem('payment_insight_invoices', JSON.stringify(invoices));
-
+      loadInvoices();
       alert(`Invoice ${invoiceNumber} created for ${selectedClient.name}!\nTotal: ${formatCurrency(totalAmount)}\n\nView it in the Payments tab to collect payment.`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving invoice:', error);
-      alert('Error saving invoice. Please try again.');
+      alert('Error saving invoice: ' + (error?.message || 'please try again.'));
     }
   };
 
@@ -305,7 +286,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
           )}
           <div>
             <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <FileText className="w-6 h-6 text-[#1B4E9B]" />
+              <FileText className="w-6 h-6 text-[#7B1E2B]" />
               {lockedToClient ? 'Your Invoice' : 'Generate Invoice'}
             </h2>
             <p className="text-sm text-gray-600">Client: {selectedClient.name}</p>
@@ -335,7 +316,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
             <select
               value={lateFeeType}
               onChange={(e) => setLateFeeType(e.target.value as 'percentage' | 'fixed')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E]"
             >
               <option value="percentage">Percentage</option>
               <option value="fixed">Fixed Amount</option>
@@ -349,7 +330,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                 step="0.1"
                 value={lateFeeRate}
                 onChange={(e) => setLateFeeRate(Number(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E]"
               />
             </div>
           ) : (
@@ -360,7 +341,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                 step="1"
                 value={fixedLateFee}
                 onChange={(e) => setFixedLateFee(Number(e.target.value))}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E]"
               />
             </div>
           )}
@@ -370,25 +351,25 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
               type="number"
               value={gracePeriodDays}
               onChange={(e) => setGracePeriodDays(Number(e.target.value))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#20B2AA]"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E]"
             />
           </div>
         </div>
       </details>
 
       <div className="mx-auto max-w-4xl bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden print:shadow-none print:border-0">
-        <div className="h-2 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA]" />
+        <div className="h-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E]" />
 
         <div className="p-8 md:p-10">
           <div className="flex flex-col md:flex-row justify-between gap-6 pb-6 border-b border-gray-200">
             <div className="flex items-start gap-4">
               <img
-                src="/src/imports/payment_insight_logo_new.JPG"
+                src="/payment_insight_mark.svg"
                 alt="Payment Insight"
-                className="w-20 h-auto"
+                className="w-16 h-auto"
               />
               <div>
-                <h2 className="text-xl font-bold text-[#1B4E9B] tracking-tight">PAYMENT INSIGHT</h2>
+                <h2 className="text-xl font-bold text-[#7B1E2B] tracking-tight">PAYMENT INSIGHT</h2>
                 <p className="text-sm text-gray-600 mt-1">Powered by GDI Digital Solutions</p>
                 <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                   <Mail className="w-3 h-3" /> billing@paymentinsight.com
@@ -438,7 +419,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                 <span className="text-gray-600">Term</span>
                 <span className="text-right font-medium text-gray-900">{selectedClient.loanTerm} years</span>
                 <span className="text-gray-600">Current Balance</span>
-                <span className="text-right font-semibold text-[#1B4E9B]">{formatCurrency(selectedClient.balance)}</span>
+                <span className="text-right font-semibold text-[#7B1E2B]">{formatCurrency(selectedClient.balance)}</span>
               </div>
             </div>
           </div>
@@ -490,13 +471,13 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
               )}
               <div className="flex justify-between items-center pt-3 border-t-2 border-gray-300">
                 <span className="font-semibold text-gray-900">Total Due</span>
-                <span className="font-bold text-[#1B4E9B] text-2xl">{formatCurrency(totalAmount)}</span>
+                <span className="font-bold text-[#7B1E2B] text-2xl">{formatCurrency(totalAmount)}</span>
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg p-5 border border-[#20B2AA] mb-6">
-            <p className="text-xs uppercase tracking-wider text-[#1B4E9B] font-semibold mb-2">Payment Instructions</p>
+          <div className="bg-gradient-to-r from-rose-50 to-red-50 rounded-lg p-5 border border-[#A6332E] mb-6">
+            <p className="text-xs uppercase tracking-wider text-[#7B1E2B] font-semibold mb-2">Payment Instructions</p>
             <p className="text-sm text-gray-700">
               Please remit payment by <span className="font-semibold">{dueDate}</span>. You may pay online via the Payments tab, or contact us to arrange alternate payment.
             </p>
@@ -512,7 +493,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
       <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3 print:hidden">
         <button
           onClick={generateInvoice}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors font-semibold shadow-lg"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors font-semibold shadow-lg"
         >
           <FileText className="w-5 h-5" />
           Save Invoice

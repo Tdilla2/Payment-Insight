@@ -28,9 +28,9 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
           <Table className="w-20 h-20 mx-auto mb-4 text-gray-300" />
           <h3 className="text-xl font-semibold text-gray-700 mb-2">No Client Selected</h3>
           <p className="text-gray-600 mb-4">Select a client from the Clients tab to view their complete amortization schedule.</p>
-          <div className="inline-block p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+          <div className="inline-block p-4 bg-rose-50 rounded-lg border-2 border-rose-200">
             <p className="text-sm text-gray-700">
-              💡 <span className="font-semibold">Tip:</span> Go to the <span className="font-semibold text-[#1B4E9B]">Clients</span> tab and click the <span className="text-[#1B4E9B]">$</span> button next to any client.
+              💡 <span className="font-semibold">Tip:</span> Go to the <span className="font-semibold text-[#7B1E2B]">Clients</span> tab and click the <span className="text-[#7B1E2B]">$</span> button next to any client.
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <Table className="w-6 h-6 text-[#1B4E9B]" />
+            <Table className="w-6 h-6 text-[#7B1E2B]" />
             Amortization Schedule
           </h2>
           <p className="text-sm text-gray-600 mt-1">Client: {client.name}</p>
@@ -142,14 +142,14 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
           )}
           <button
             onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-[#20B2AA] text-white rounded-lg hover:bg-[#1a8f8f] transition-colors shadow-md"
+            className="flex items-center gap-2 px-4 py-2 bg-[#A6332E] text-white rounded-lg hover:bg-[#5E1620] transition-colors shadow-md"
           >
             <Download className="w-4 h-4" />
             Export CSV
           </button>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white rounded-lg hover:from-[#153d7a] hover:to-[#1a8f8f] transition-colors shadow-md"
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors shadow-md"
           >
             {isExpanded ? (
               <>
@@ -166,7 +166,7 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
         </div>
       </div>
 
-      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg border-2 border-[#1B4E9B]">
+      <div className="mb-6 p-4 bg-gradient-to-r from-rose-50 to-red-50 rounded-lg border-2 border-[#7B1E2B]">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-semibold text-gray-700">Loan Progress</span>
           <span className="text-sm text-gray-600">
@@ -180,7 +180,7 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
         </div>
         <div className="relative h-8 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="absolute h-full bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] transition-all duration-500"
+            className="absolute h-full bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] transition-all duration-500"
             style={{ width: `${((client.loanAmount - client.balance) / client.loanAmount) * 100}%` }}
           >
             <div className="h-full flex items-center justify-center text-white text-xs font-semibold">
@@ -195,28 +195,28 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-[#1B4E9B]">
+        <div className="bg-gradient-to-br from-rose-50 to-rose-100 rounded-lg p-4 border-2 border-[#7B1E2B]">
           <p className="text-sm text-gray-600 mb-1">Total Principal</p>
-          <p className="text-2xl font-bold text-[#1B4E9B]">{formatCurrency(totalPrincipal)}</p>
+          <p className="text-2xl font-bold text-[#7B1E2B]">{formatCurrency(totalPrincipal)}</p>
         </div>
         <div className="bg-gradient-to-br from-yellow-50 to-amber-100 rounded-lg p-4 border-2 border-[#FFB800]">
           <p className="text-sm text-gray-600 mb-1">Total Interest</p>
           <p className="text-2xl font-bold text-[#FFB800]">{formatCurrency(totalInterest)}</p>
         </div>
-        <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg p-4 border-2 border-[#20B2AA]">
+        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-4 border-2 border-[#A6332E]">
           <p className="text-sm text-gray-600 mb-1">Total Paid</p>
-          <p className="text-2xl font-bold text-[#20B2AA]">{formatCurrency(totalPaid)}</p>
+          <p className="text-2xl font-bold text-[#A6332E]">{formatCurrency(totalPaid)}</p>
         </div>
-        <div className="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg p-4 border-2 border-[#1B4E9B]">
+        <div className="bg-gradient-to-br from-stone-50 to-stone-100 rounded-lg p-4 border-2 border-[#7B1E2B]">
           <p className="text-sm text-gray-600 mb-1">Total Payments</p>
-          <p className="text-2xl font-bold text-[#1B4E9B]">{schedule.length}</p>
+          <p className="text-2xl font-bold text-[#7B1E2B]">{schedule.length}</p>
         </div>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gradient-to-r from-[#1B4E9B] to-[#20B2AA] text-white">
+            <tr className="bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white">
               <th className="px-4 py-3 text-left text-sm font-semibold">Payment #</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Date</th>
               <th className="px-4 py-3 text-right text-sm font-semibold">Payment</th>
@@ -238,7 +238,7 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
                 <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">
                   {formatCurrency(payment.payment)}
                 </td>
-                <td className="px-4 py-3 text-sm text-right text-[#20B2AA] font-medium">
+                <td className="px-4 py-3 text-sm text-right text-[#A6332E] font-medium">
                   {formatCurrency(payment.principal)}
                 </td>
                 <td className="px-4 py-3 text-sm text-right text-[#FFB800] font-medium">
@@ -275,7 +275,7 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
         </div>
       )}
 
-      <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-teal-50 rounded-lg border-2 border-[#20B2AA]">
+      <div className="mt-4 p-4 bg-gradient-to-r from-rose-50 to-red-50 rounded-lg border-2 border-[#A6332E]">
         <p className="text-sm text-gray-700">
           <span className="font-semibold">Understanding the schedule:</span> Each row shows how the monthly payment of {formatCurrency(client.monthlyPayment)} is split between principal (paying down the loan) and interest (cost of borrowing). Early payments have more interest, while later payments have more principal.
         </p>

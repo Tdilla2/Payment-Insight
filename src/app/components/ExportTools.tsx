@@ -101,14 +101,14 @@ export function ExportTools({ schedule, summary }: ExportToolsProps) {
   return (
     <div className="bg-white rounded-lg shadow-lg p-6 print:hidden">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-        <Download className="w-5 h-5 text-[#1B4E9B]" />
+        <Download className="w-5 h-5 text-[#7B1E2B]" />
         Export & Print Options
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
           onClick={exportToCSV}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#20B2AA] text-white rounded-lg hover:bg-[#1a8f8f] transition-colors font-medium shadow-md"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#A6332E] text-white rounded-lg hover:bg-[#5E1620] transition-colors font-medium shadow-md"
         >
           <Download className="w-5 h-5" />
           Export to CSV
@@ -116,7 +116,7 @@ export function ExportTools({ schedule, summary }: ExportToolsProps) {
 
         <button
           onClick={exportToText}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#1B4E9B] text-white rounded-lg hover:bg-[#153d7a] transition-colors font-medium shadow-md"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#7B1E2B] text-white rounded-lg hover:bg-[#5E1620] transition-colors font-medium shadow-md"
         >
           <FileText className="w-5 h-5" />
           Export to Text
