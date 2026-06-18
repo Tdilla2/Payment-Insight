@@ -1,0 +1,72 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Required for OIDC federation with AWS (no static AWS keys stored in GitHub).
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ROLE: arn:aws:iam::130423149110:role/payment-insight-gha-deploy
+  S3_BUCKET: payment-insight-site-20260618193812295000000003
+  CLOUDFRONT_ID: E1RB681KZMXS3V
+  LAMBDA_FUNCTION: payment-insight-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # --- Build & package the API (Lambda) ---
+      - name: Build API
+        working-directory: server
+        run: |
+          npm ci
+          npm run build
+          (cd dist && zip -r ../lambda.zip .)
+
+      # --- Build the frontend ---
+      - name: Build frontend
+        run: |
+          npm ci
+          npm run build
+
+      # --- Authenticate to AWS via OIDC ---
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # --- Deploy API ---
+      - name: Deploy Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name "$LAMBDA_FUNCTION" \
+            --zip-file fileb://server/lambda.zip \
+            --region "$AWS_REGION" \
+            --no-cli-pager
+
+      # --- Deploy frontend ---
+      - name: Deploy frontend to S3 + CloudFront
+        run: |
+          aws s3 sync dist "s3://$S3_BUCKET" --delete --region "$AWS_REGION"
+          aws cloudfront create-invalidation \
+            --distribution-id "$CLOUDFRONT_ID" \
+            --paths "/*" \
+            --region "$AWS_REGION" \
+            --no-cli-pager

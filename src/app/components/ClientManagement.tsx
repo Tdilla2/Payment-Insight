@@ -2,11 +2,23 @@ import { useState, useEffect } from 'react';
 import { Users, Plus, Edit, Trash2, DollarSign, Calendar, Calculator, KeyRound } from 'lucide-react';
 import { dataApi } from '../lib/dataApi';
 
+export const LOAN_TYPES = [
+  'Home Mortgage',
+  'Auto Loan',
+  'Personal Loan',
+  'Student Loan',
+  'Business Loan',
+  'Home Equity (HELOC)',
+  'Debt Consolidation',
+  'Other',
+];
+
 export interface Client {
   id: string;
   name: string;
   email: string;
   phone: string;
+  loanType: string;
   loanAmount: number;
   monthlyPayment: number;
   interestRate: number;
@@ -100,6 +112,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
     name: '',
     email: '',
     phone: '',
+    loanType: 'Home Mortgage',
     loanAmount: 0,
     monthlyPayment: 0,
     interestRate: 0,
@@ -307,6 +320,20 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
                 onChange={(e) => setNewClient({ ...newClient, phone: e.target.value })}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Loan Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={newClient.loanType || 'Home Mortgage'}
+                onChange={(e) => setNewClient({ ...newClient, loanType: e.target.value })}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] w-full bg-white"
+              >
+                {LOAN_TYPES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

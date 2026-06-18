@@ -49,7 +49,7 @@ const body = (event: APIGatewayProxyEventV2) => {
 
 // Client query with its primary loan fields merged in (matches the UI shape).
 const CLIENT_SELECT = `
-  select c.*, l.loan_amount, l.interest_rate, l.loan_term, l.monthly_payment,
+  select c.*, l.loan_type, l.loan_amount, l.interest_rate, l.loan_term, l.monthly_payment,
          l.start_date, l.next_payment_date, l.balance
   from clients c
   left join lateral (select * from loans where client_id = c.id order by created_at limit 1) l on true`;
@@ -63,14 +63,14 @@ async function upsertLoan(clientId: string, b: any) {
   const existing = await one<{ id: string }>('select id from loans where client_id=$1 order by created_at limit 1', [clientId]);
   if (existing) {
     await query(
-      `update loans set loan_amount=$2, interest_rate=$3, loan_term=$4, monthly_payment=$5,
-       start_date=$6, next_payment_date=$7, balance=$8 where id=$1`,
-      [existing.id, b.loanAmount, b.interestRate, b.loanTerm, b.monthlyPayment, b.startDate, b.nextPaymentDate, b.balance ?? b.loanAmount]);
+      `update loans set loan_type=coalesce($9,loan_type), loan_amount=$2, interest_rate=$3, loan_term=$4,
+       monthly_payment=$5, start_date=$6, next_payment_date=$7, balance=$8 where id=$1`,
+      [existing.id, b.loanAmount, b.interestRate, b.loanTerm, b.monthlyPayment, b.startDate, b.nextPaymentDate, b.balance ?? b.loanAmount, b.loanType]);
   } else {
     await query(
-      `insert into loans (client_id,loan_amount,interest_rate,loan_term,monthly_payment,start_date,next_payment_date,balance)
-       values ($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [clientId, b.loanAmount, b.interestRate, b.loanTerm, b.monthlyPayment, b.startDate, b.nextPaymentDate, b.balance ?? b.loanAmount]);
+      `insert into loans (client_id,loan_amount,interest_rate,loan_term,monthly_payment,start_date,next_payment_date,balance,loan_type)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,coalesce($9,'Home Mortgage'))`,
+      [clientId, b.loanAmount, b.interestRate, b.loanTerm, b.monthlyPayment, b.startDate, b.nextPaymentDate, b.balance ?? b.loanAmount, b.loanType]);
   }
 }
 

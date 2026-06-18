@@ -13,6 +13,7 @@ function toClient(r: any): Client {
     name: r.name,
     email: r.email,
     phone: r.phone ?? '',
+    loanType: r.loan_type ?? 'Home Mortgage',
     loanAmount: num(r.loan_amount),
     monthlyPayment: num(r.monthly_payment),
     interestRate: num(r.interest_rate),
