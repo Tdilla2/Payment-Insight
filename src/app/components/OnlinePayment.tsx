@@ -7,10 +7,11 @@ interface OnlinePaymentProps {
   invoiceNumber: string;
   clientName: string;
   invoiceId?: string;
+  loanType?: string;
   onPaid?: () => void;
 }
 
-export function OnlinePayment({ amount, invoiceNumber, clientName, invoiceId, onPaid }: OnlinePaymentProps) {
+export function OnlinePayment({ amount, invoiceNumber, clientName, invoiceId, loanType, onPaid }: OnlinePaymentProps) {
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'ach' | 'paypal'>('card');
   const [cardNumber, setCardNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
@@ -96,6 +97,7 @@ export function OnlinePayment({ amount, invoiceNumber, clientName, invoiceId, on
           <div>
             <p className="text-sm text-gray-600">Invoice: {invoiceNumber}</p>
             <p className="text-sm text-gray-600">Client: {clientName}</p>
+            {loanType && <p className="text-sm text-gray-600">Loan Type: <span className="font-semibold text-[#7B1E2B]">{loanType}</span></p>}
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600">Amount Due</p>

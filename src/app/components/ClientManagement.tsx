@@ -250,7 +250,7 @@ export function ClientManagement({ onSelectClient }: ClientManagementProps) {
             </span>
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            💾 All data is automatically saved to your browser
+            🔒 All data is securely saved to your account
           </p>
         </div>
         <div className="flex gap-2">

@@ -19,6 +19,7 @@ interface PayableInvoice {
   invoiceNumber: string;
   clientName: string;
   amount: number;
+  loanType?: string;
 }
 
 export default function App() {
@@ -236,6 +237,7 @@ export default function App() {
               amount={payableInvoice?.amount ?? loggedInClient?.monthlyPayment ?? selectedClient?.monthlyPayment ?? 1580.17}
               invoiceNumber={payableInvoice?.invoiceNumber || 'INV-1001'}
               clientName={payableInvoice?.clientName || loggedInClient?.name || selectedClient?.name || 'Demo Client'}
+              loanType={payableInvoice?.loanType || loggedInClient?.loanType || selectedClient?.loanType}
               onPaid={() => setActiveTab('payments')}
             />
           )}

@@ -55,8 +55,10 @@ const CLIENT_SELECT = `
   left join lateral (select * from loans where client_id = c.id order by created_at limit 1) l on true`;
 
 const INVOICE_SELECT = `
-  select i.*, c.name as client_name, c.email as client_email
-  from invoices i join clients c on c.id = i.client_id`;
+  select i.*, c.name as client_name, c.email as client_email, l.loan_type
+  from invoices i
+  join clients c on c.id = i.client_id
+  left join lateral (select loan_type from loans where client_id = c.id order by created_at limit 1) l on true`;
 
 async function upsertLoan(clientId: string, b: any) {
   if (b.loanAmount == null) return;

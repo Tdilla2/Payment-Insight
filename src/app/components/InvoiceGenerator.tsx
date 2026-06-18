@@ -8,6 +8,7 @@ export interface Invoice {
   clientId: string;
   clientName: string;
   clientEmail: string;
+  loanType?: string;
   invoiceNumber: string;
   invoiceDate: string;
   dueDate: string;
@@ -144,6 +145,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                       <tr className="bg-gray-50 border-b border-gray-200">
                         <th className="px-3 py-2 text-left font-semibold text-gray-700">Invoice #</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-700">Client</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-700">Loan Type</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-700">Due</th>
                         <th className="px-3 py-2 text-right font-semibold text-gray-700">Total</th>
                         <th className="px-3 py-2 text-center font-semibold text-gray-700">Status</th>
@@ -157,6 +159,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
                           <tr key={inv.id} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="px-3 py-2 font-mono text-xs">{inv.invoiceNumber}</td>
                             <td className="px-3 py-2">{inv.clientName}</td>
+                            <td className="px-3 py-2 text-gray-600">{inv.loanType || '—'}</td>
                             <td className="px-3 py-2 text-gray-600">{inv.dueDate}</td>
                             <td className="px-3 py-2 text-right font-semibold text-[#7B1E2B]">{formatCurrency(inv.totalAmount)}</td>
                             <td className="px-3 py-2 text-center">
@@ -412,6 +415,8 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
             <div>
               <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2">Loan Summary</p>
               <div className="grid grid-cols-2 gap-y-1 text-sm">
+                <span className="text-gray-600">Loan Type</span>
+                <span className="text-right font-semibold text-[#7B1E2B]">{selectedClient.loanType || 'Home Mortgage'}</span>
                 <span className="text-gray-600">Original Amount</span>
                 <span className="text-right font-medium text-gray-900">{formatCurrency(selectedClient.loanAmount)}</span>
                 <span className="text-gray-600">Interest Rate</span>

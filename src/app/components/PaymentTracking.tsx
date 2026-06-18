@@ -8,6 +8,7 @@ interface Payment {
   clientId: string;
   clientName: string;
   clientEmail: string;
+  loanType?: string;
   invoiceNumber: string;
   amount: number;
   paymentDate: string;
@@ -18,7 +19,7 @@ interface Payment {
 }
 
 interface PaymentTrackingProps {
-  onPayInvoice?: (invoice: { id: string; invoiceNumber: string; clientName: string; amount: number }) => void;
+  onPayInvoice?: (invoice: { id: string; invoiceNumber: string; clientName: string; amount: number; loanType?: string }) => void;
   filterClientId?: string;
   hideAdminActions?: boolean;
 }
@@ -42,6 +43,7 @@ export function PaymentTracking({ onPayInvoice, filterClientId, hideAdminActions
         clientId: inv.clientId,
         clientName: inv.clientName,
         clientEmail: inv.clientEmail,
+        loanType: inv.loanType,
         invoiceNumber: inv.invoiceNumber,
         amount: inv.totalAmount,
         paymentDate: inv.status === 'paid' ? inv.invoiceDate : '',
@@ -160,6 +162,7 @@ export function PaymentTracking({ onPayInvoice, filterClientId, hideAdminActions
         invoiceNumber: payment.invoiceNumber,
         clientName: payment.clientName,
         amount: payment.amount,
+        loanType: payment.loanType,
       });
     }
   };
@@ -294,6 +297,7 @@ export function PaymentTracking({ onPayInvoice, filterClientId, hideAdminActions
           <thead>
             <tr className="bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white">
               <th className="px-4 py-3 text-left text-sm font-semibold">Client</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold">Loan Type</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Invoice #</th>
               <th className="px-4 py-3 text-right text-sm font-semibold">Amount</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Due Date</th>
@@ -306,7 +310,7 @@ export function PaymentTracking({ onPayInvoice, filterClientId, hideAdminActions
           <tbody>
             {filteredPayments.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-gray-500">
+                <td colSpan={9} className="px-4 py-12 text-center text-gray-500">
                   <DollarSign className="w-16 h-16 mx-auto mb-3 text-gray-300" />
                   <p className="text-lg font-semibold text-gray-700">No invoices found</p>
                   <p className="text-sm text-gray-600 mt-1">
@@ -325,6 +329,13 @@ export function PaymentTracking({ onPayInvoice, filterClientId, hideAdminActions
                 }`}
               >
                 <td className="px-4 py-3 text-sm font-medium text-gray-900">{payment.clientName}</td>
+                <td className="px-4 py-3 text-sm">
+                  {payment.loanType && (
+                    <span className="inline-block px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-[#7B1E2B] border border-rose-200">
+                      {payment.loanType}
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-sm font-mono text-gray-700">{payment.invoiceNumber}</td>
                 <td className="px-4 py-3 text-sm text-right font-semibold text-[#7B1E2B]">
                   {formatCurrency(payment.amount)}

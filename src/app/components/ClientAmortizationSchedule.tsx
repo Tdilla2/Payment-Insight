@@ -128,7 +128,14 @@ export function ClientAmortizationSchedule({ client, onCreateInvoice }: ClientAm
             <Table className="w-6 h-6 text-[#7B1E2B]" />
             Amortization Schedule
           </h2>
-          <p className="text-sm text-gray-600 mt-1">Client: {client.name}</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Client: {client.name}
+            {client.loanType && (
+              <span className="ml-2 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-50 text-[#7B1E2B] border border-rose-200">
+                {client.loanType}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {onCreateInvoice && (

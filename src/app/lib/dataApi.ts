@@ -32,6 +32,7 @@ function toInvoice(r: any): Invoice {
     clientId: r.client_id,
     clientName: r.client_name ?? '',
     clientEmail: r.client_email ?? '',
+    loanType: r.loan_type ?? '',
     invoiceNumber: r.invoice_number,
     invoiceDate: day(r.invoice_date),
     dueDate: day(r.due_date),
