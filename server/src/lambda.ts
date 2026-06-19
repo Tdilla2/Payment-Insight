@@ -44,7 +44,11 @@ async function clientIdFor(id: Identity): Promise<string | null> {
 }
 
 const body = (event: APIGatewayProxyEventV2) => {
-  try { return event.body ? JSON.parse(event.body) : {}; } catch { return {}; }
+  try {
+    let raw = event.body;
+    if (raw && event.isBase64Encoded) raw = Buffer.from(raw, 'base64').toString('utf8');
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
 };
 
 // Client query with its primary loan fields merged in (matches the UI shape).
