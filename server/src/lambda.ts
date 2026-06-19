@@ -3,7 +3,7 @@ import { query, one } from './db.js';
 import { getConfig } from './config.js';
 import { amortization } from './amortization.js';
 import { createPaymentIntent, settlePayment } from './stripe.js';
-import { provisionClientUser, provisionAdminUser, listAllUsers, deleteUser } from './cognitoAdmin.js';
+import { provisionClientUser, provisionInternalUser, listInternalUsers, deleteUser } from './cognitoAdmin.js';
 
 // ---------- helpers ----------
 const json = (statusCode: number, body: unknown): APIGatewayProxyResultV2 => ({
@@ -12,7 +12,7 @@ const json = (statusCode: number, body: unknown): APIGatewayProxyResultV2 => ({
   body: JSON.stringify(body),
 });
 
-interface Identity { sub: string; email: string; role: 'superadmin' | 'client'; }
+interface Identity { sub: string; email: string; role: 'superadmin' | 'user' | 'client'; }
 
 function identity(event: APIGatewayProxyEventV2): Identity | null {
   const claims = (event.requestContext as any)?.authorizer?.jwt?.claims;
@@ -21,15 +21,14 @@ function identity(event: APIGatewayProxyEventV2): Identity | null {
   const groups: string[] = Array.isArray(raw)
     ? raw
     : String(raw ?? '').replace(/[[\]]/g, '').split(/[ ,]+/).filter(Boolean);
-  return {
-    sub: claims.sub,
-    email: claims.email,
-    role: groups.includes('superadmin') ? 'superadmin' : 'client',
-  };
+  const role = groups.includes('superadmin') ? 'superadmin'
+    : groups.includes('user') ? 'user'
+    : 'client';
+  return { sub: claims.sub, email: claims.email, role };
 }
 
 async function clientIdFor(id: Identity): Promise<string | null> {
-  if (id.role === 'superadmin') return null;
+  if (id.role !== 'client') return null;
   const u = await one<{ client_id: string }>('select client_id from users where cognito_sub=$1', [id.sub]);
   if (u?.client_id) return u.client_id;
   const c = await one<{ id: string }>('select id from clients where lower(email)=lower($1)', [id.email]);
@@ -111,28 +110,27 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     }
 
     const myClient = await clientIdFor(id);
-    const admin = id.role === 'superadmin';
+    const staff = id.role === 'superadmin' || id.role === 'user'; // operational access
+    const superadmin = id.role === 'superadmin';                  // can manage users
 
-    // ----- /users (user management — admins + clients; superadmin only) -----
+    // ----- /users (internal users — admins + staff; full admins only) -----
     if (seg[0] === 'users') {
-      if (!admin) return json(403, { error: 'forbidden' });
-      if (seg.length === 1 && method === 'GET') return json(200, await listAllUsers());
+      if (!superadmin) return json(403, { error: 'forbidden' });
+      if (seg.length === 1 && method === 'GET') return json(200, await listInternalUsers());
       if (seg.length === 1 && method === 'POST') {
-        // Invite a new admin user (clients are created via /clients with loan details).
+        // Invite an internal user as 'admin' or 'user' (clients are created via /clients).
         const b = body(event);
         if (!b.email) return json(400, { error: 'email required' });
+        const role = b.role === 'user' ? 'user' : 'admin';
         const tempPassword = b.password || 'Temp1234!';
-        await provisionAdminUser(b.email, tempPassword);
-        return json(201, { email: b.email, role: 'admin', tempPassword });
+        await provisionInternalUser(b.email, tempPassword, role);
+        return json(201, { email: b.email, role, tempPassword });
       }
       if (seg.length === 2 && method === 'DELETE') {
         const target = decodeURIComponent(seg[1]);
         if (target.toLowerCase() === id.email.toLowerCase())
           return json(400, { error: 'You cannot remove your own account.' });
-        // Remove the login. If they're a client, also drop their app record/link.
         await deleteUser(target);
-        await query('delete from users where lower(email)=lower($1)', [target]);
-        await query('delete from clients where lower(email)=lower($1)', [target]);
         return json(204, {});
       }
     }
@@ -141,11 +139,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     if (seg[0] === 'clients') {
       if (seg.length === 1) {
         if (method === 'GET') {
-          return admin
+          return staff
             ? json(200, await query(`${CLIENT_SELECT} order by c.created_at desc`))
             : json(200, await query(`${CLIENT_SELECT} where c.id=$1`, [myClient]));
         }
-        if (method === 'POST' && admin) {
+        if (method === 'POST' && staff) {
           const b = body(event);
           const c = await one<any>(
             `insert into clients (name,email,phone,status,billing_day)
@@ -158,11 +156,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         }
       }
       const cid = seg[1];
-      if (!admin && cid !== myClient) return json(403, { error: 'forbidden' });
+      if (!staff && cid !== myClient) return json(403, { error: 'forbidden' });
 
       if (seg.length === 2 && method === 'GET')
         return json(200, await one(`${CLIENT_SELECT} where c.id=$1`, [cid]));
-      if (seg.length === 2 && method === 'PUT' && admin) {
+      if (seg.length === 2 && method === 'PUT' && staff) {
         const b = body(event);
         await query(
           `update clients set name=coalesce($2,name), email=coalesce($3,email),
@@ -172,7 +170,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         await upsertLoan(cid, b);
         return json(200, await one(`${CLIENT_SELECT} where c.id=$1`, [cid]));
       }
-      if (seg.length === 2 && method === 'DELETE' && admin) {
+      if (seg.length === 2 && method === 'DELETE' && staff) {
         const c = await one<{ email: string }>('select email from clients where id=$1', [cid]);
         await query('delete from clients where id=$1', [cid]);
         if (c) await deleteUser(c.email);
@@ -188,11 +186,11 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     // ----- /invoices -----
     if (seg[0] === 'invoices') {
       if (seg.length === 1 && method === 'GET') {
-        return admin
+        return staff
           ? json(200, await query(`${INVOICE_SELECT} order by i.invoice_date desc`))
           : json(200, await query(`${INVOICE_SELECT} where i.client_id=$1 order by i.invoice_date desc`, [myClient]));
       }
-      if (seg.length === 1 && method === 'POST' && admin) {
+      if (seg.length === 1 && method === 'POST' && staff) {
         const b = body(event);
         const inv = await one<any>(
           `insert into invoices (client_id,loan_id,invoice_number,amount,late_fee,total_amount,invoice_date,due_date,status,description)
@@ -201,7 +199,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         return json(201, await one(`${INVOICE_SELECT} where i.id=$1`, [inv!.id]));
       }
       const iid = seg[1];
-      if (seg.length === 2 && method === 'PUT' && admin) {
+      if (seg.length === 2 && method === 'PUT' && staff) {
         const b = body(event);
         await query(
           `update invoices set total_amount=coalesce($2,total_amount), amount=coalesce($3,amount),
@@ -210,7 +208,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
           [iid, b.totalAmount, b.amount, b.lateFee, b.dueDate, b.status, b.description]);
         return json(200, await one(`${INVOICE_SELECT} where i.id=$1`, [iid]));
       }
-      if (seg.length === 2 && method === 'DELETE' && admin) {
+      if (seg.length === 2 && method === 'DELETE' && staff) {
         await query('delete from invoices where id=$1', [iid]);
         return json(204, {});
       }
@@ -219,7 +217,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     // ----- /payments -----
     if (seg[0] === 'payments') {
       if (seg.length === 1 && method === 'GET') {
-        return admin
+        return staff
           ? json(200, await query('select * from payments order by created_at desc'))
           : json(200, await query('select * from payments where client_id=$1 order by created_at desc', [myClient]));
       }
@@ -227,7 +225,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
         const b = body(event);
         const inv = await one<any>('select * from invoices where id=$1', [b.invoiceId]);
         if (!inv) return json(404, { error: 'invoice not found' });
-        if (!admin && inv.client_id !== myClient) return json(403, { error: 'forbidden' });
+        if (!staff && inv.client_id !== myClient) return json(403, { error: 'forbidden' });
         return json(200, await createPaymentIntent(inv));
       }
       if (seg[2] === 'confirm' && method === 'POST') {

@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Users as UsersIcon, Plus, Trash2, CheckCircle, Copy, X, Mail, Shield, User } from 'lucide-react';
+import { Users as UsersIcon, Plus, Trash2, CheckCircle, Copy, X, Mail, Shield, UserCog } from 'lucide-react';
 import { dataApi, ManagedUser } from '../lib/dataApi';
 
 interface UserManagementProps {
@@ -22,7 +22,8 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
-  const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [created, setCreated] = useState<{ email: string; role: string; password: string } | null>(null);
   const [error, setError] = useState('');
 
   const reload = async () => {
@@ -38,25 +39,24 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
 
   useEffect(() => { reload(); }, []);
 
-  const inviteAdmin = async (e: FormEvent) => {
+  const inviteUser = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     const addr = email.trim();
     if (!addr) return;
     try {
-      const res = await dataApi.inviteAdmin({ email: addr });
-      setCreated({ email: res.email, password: res.tempPassword });
+      const res = await dataApi.inviteUser({ email: addr, role });
+      setCreated({ email: res.email, role: res.role, password: res.tempPassword });
       setEmail('');
       setShowForm(false);
       await reload();
     } catch (err: any) {
-      setError(err?.message || 'Could not create admin. Please try again.');
+      setError(err?.message || 'Could not create user. Please try again.');
     }
   };
 
   const removeUser = async (u: ManagedUser) => {
-    const extra = u.role === 'client' ? '\n\nThis also removes their client & loan record.' : '';
-    if (!confirm(`Remove ${u.email}? Their login will be deleted.${extra}`)) return;
+    if (!confirm(`Remove ${u.email}? Their login will be deleted.`)) return;
     try {
       await dataApi.deleteUser(u.email);
       await reload();
@@ -66,7 +66,18 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
   };
 
   const adminCount = users.filter((u) => u.role === 'admin').length;
-  const clientCount = users.filter((u) => u.role === 'client').length;
+  const userCount = users.filter((u) => u.role === 'user').length;
+
+  const roleBadge = (r: 'admin' | 'user') =>
+    r === 'admin' ? (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-[#7B1E2B] border border-rose-200">
+        <Shield className="w-3.5 h-3.5" /> Admin
+      </span>
+    ) : (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 border border-sky-200">
+        <UserCog className="w-3.5 h-3.5" /> User
+      </span>
+    );
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
@@ -76,7 +87,9 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
             <div className="flex items-start gap-3">
               <CheckCircle className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-emerald-900">Admin invited — login created</p>
+                <p className="font-semibold text-emerald-900">
+                  {created.role === 'admin' ? 'Admin' : 'User'} invited — login created
+                </p>
                 <p className="text-sm text-gray-700 mt-1">
                   Share these temporary credentials. They'll set their own password on first sign-in.
                 </p>
@@ -109,36 +122,49 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
             <span className="ml-2 px-3 py-1 bg-[#A6332E] text-white rounded-full text-sm font-bold">{users.length}</span>
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            {adminCount} admin{adminCount === 1 ? '' : 's'} · {clientCount} client{clientCount === 1 ? '' : 's'}.
-            Admins have full access; clients only see their own portal.
+            {adminCount} admin{adminCount === 1 ? '' : 's'} · {userCount} user{userCount === 1 ? '' : 's'}.
+            Admins have full access; users can't manage other users. (Clients are managed in the Clients tab.)
           </p>
         </div>
         <button
           onClick={() => { setShowForm((s) => !s); setError(''); }}
           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#7B1E2B] transition-colors font-semibold shadow"
         >
-          <Plus className="w-5 h-5" /> Add Admin
+          <Plus className="w-5 h-5" /> Add User
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={inviteAdmin} className="mb-6 p-4 bg-rose-50 rounded-lg border-2 border-rose-200">
-          <h3 className="text-lg font-semibold mb-1">Invite a new admin</h3>
-          <p className="text-xs text-gray-500 mb-3">To add a client, use the <span className="font-semibold text-[#7B1E2B]">Clients</span> tab (so you can enter their loan details).</p>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@company.com"
-              required
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E]"
-            />
+        <form onSubmit={inviteUser} className="mb-6 p-4 bg-rose-50 rounded-lg border-2 border-rose-200">
+          <h3 className="text-lg font-semibold mb-3">Invite a new internal user</h3>
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="person@company.com"
+                required
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#A6332E] bg-white"
+              >
+                <option value="user">User (limited staff)</option>
+                <option value="admin">Admin (full access)</option>
+              </select>
+            </div>
             <button type="submit" className="px-5 py-2 bg-[#7B1E2B] text-white rounded-lg hover:bg-[#5E1620] font-semibold flex items-center justify-center gap-2">
-              <Mail className="w-4 h-4" /> Create admin
+              <Mail className="w-4 h-4" /> Create
             </button>
           </div>
+          <p className="text-xs text-gray-500 mt-2">A temporary password is generated; they'll change it on first sign-in.</p>
           {error && <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
         </form>
       )}
@@ -157,7 +183,7 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
             {loading ? (
               <tr><td colSpan={4} className="px-4 py-10 text-center text-gray-500">Loading…</td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={4} className="px-4 py-10 text-center text-gray-500">No users found.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-10 text-center text-gray-500">No internal users found.</td></tr>
             ) : (
               users.map((u, i) => {
                 const isSelf = u.email.toLowerCase() === currentEmail.toLowerCase();
@@ -167,17 +193,7 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
                       {u.email}
                       {isSelf && <span className="ml-2 text-xs text-gray-500">(you)</span>}
                     </td>
-                    <td className="px-4 py-3">
-                      {u.role === 'admin' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-[#7B1E2B] border border-rose-200">
-                          <Shield className="w-3.5 h-3.5" /> Admin
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
-                          <User className="w-3.5 h-3.5" /> Client
-                        </span>
-                      )}
-                    </td>
+                    <td className="px-4 py-3">{roleBadge(u.role)}</td>
                     <td className="px-4 py-3">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColor(u.status)}`}>
                         {statusLabel(u.status)}

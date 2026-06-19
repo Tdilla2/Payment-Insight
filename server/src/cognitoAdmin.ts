@@ -38,12 +38,16 @@ async function provisionUser(email: string, tempPassword: string, group: string)
 export const provisionClientUser = (email: string, tempPassword: string) =>
   provisionUser(email, tempPassword, 'client');
 
-export const provisionAdminUser = (email: string, tempPassword: string) =>
-  provisionUser(email, tempPassword, 'superadmin');
+// Internal staff roles: 'admin' (full access) or 'user' (limited staff).
+export type InternalRole = 'admin' | 'user';
+const groupFor = (role: InternalRole) => (role === 'admin' ? 'superadmin' : 'user');
+
+export const provisionInternalUser = (email: string, tempPassword: string, role: InternalRole) =>
+  provisionUser(email, tempPassword, groupFor(role));
 
 export interface ManagedUser {
   email: string;
-  role: 'admin' | 'client';
+  role: InternalRole;
   status?: string;
   enabled?: boolean;
   created?: string;
@@ -59,11 +63,12 @@ async function listGroup(group: string): Promise<Omit<ManagedUser, 'role'>[]> {
   }));
 }
 
-// All users across both roles. If a user is somehow in both groups, admin wins.
-export async function listAllUsers(): Promise<ManagedUser[]> {
-  const [admins, clients] = await Promise.all([listGroup('superadmin'), listGroup('client')]);
+// Internal users only (admins + staff). Clients are excluded — they're managed
+// in the Clients tab / their own portal. Admin wins if a user is in both groups.
+export async function listInternalUsers(): Promise<ManagedUser[]> {
+  const [admins, staff] = await Promise.all([listGroup('superadmin'), listGroup('user')]);
   const byEmail = new Map<string, ManagedUser>();
-  for (const c of clients) byEmail.set(c.email.toLowerCase(), { ...c, role: 'client' });
+  for (const s of staff) byEmail.set(s.email.toLowerCase(), { ...s, role: 'user' });
   for (const a of admins) byEmail.set(a.email.toLowerCase(), { ...a, role: 'admin' });
   return [...byEmail.values()].sort((a, b) => a.email.localeCompare(b.email));
 }

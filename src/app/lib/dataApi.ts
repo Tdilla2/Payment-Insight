@@ -46,7 +46,7 @@ function toInvoice(r: any): Invoice {
 
 export interface ManagedUser {
   email: string;
-  role: 'admin' | 'client';
+  role: 'admin' | 'user';
   status?: string;
   enabled?: boolean;
   created?: string;
@@ -54,7 +54,7 @@ export interface ManagedUser {
 
 export interface Me {
   email: string;
-  role: 'superadmin' | 'client';
+  role: 'superadmin' | 'user' | 'client';
   clientId: string | null;
   stripePublishableKey: string;
   stripeMode: string;
@@ -79,10 +79,10 @@ export const dataApi = {
   updateInvoice: async (id: string, i: Partial<Invoice>): Promise<Invoice> => toInvoice(await api.put(`/invoices/${id}`, i)),
   deleteInvoice: (id: string) => api.del(`/invoices/${id}`),
 
-  // user management (admins + clients)
+  // internal user management (admins + staff users)
   listUsers: () => api.get<ManagedUser[]>('/users'),
-  inviteAdmin: (a: { email: string; password?: string }) =>
-    api.post<{ email: string; role: 'admin'; tempPassword: string }>('/users', a),
+  inviteUser: (a: { email: string; role: 'admin' | 'user'; password?: string }) =>
+    api.post<{ email: string; role: 'admin' | 'user'; tempPassword: string }>('/users', a),
   deleteUser: (email: string) => api.del(`/users/${encodeURIComponent(email)}`),
 
   // payments

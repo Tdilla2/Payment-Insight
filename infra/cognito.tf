@@ -31,6 +31,13 @@ resource "aws_cognito_user_group" "superadmin" {
   precedence   = 1
 }
 
+# Limited internal staff: operational access, but not user management.
+resource "aws_cognito_user_group" "user" {
+  name         = "user"
+  user_pool_id = aws_cognito_user_pool.main.id
+  precedence   = 5
+}
+
 resource "aws_cognito_user_group" "client" {
   name         = "client"
   user_pool_id = aws_cognito_user_pool.main.id

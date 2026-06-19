@@ -4,6 +4,7 @@ import { signIn, forgotPassword, confirmForgotPassword } from '../lib/cognito';
 
 export type UserSession =
   | { role: 'superadmin' }
+  | { role: 'user' }
   | { role: 'client'; clientId: string };
 
 interface LoginScreenProps {

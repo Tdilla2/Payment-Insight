@@ -43,6 +43,9 @@ export default function App() {
       if (me.role === 'superadmin') {
         setSession({ role: 'superadmin' });
         setActiveTab('calculator');
+      } else if (me.role === 'user') {
+        setSession({ role: 'user' });
+        setActiveTab('calculator');
       } else {
         setSession({ role: 'client', clientId: me.clientId ?? '' });
         if (me.clientId) {
@@ -79,7 +82,9 @@ export default function App() {
   const clientTabIds: TabType[] = ['invoices', 'payments', 'amortization', 'online-payment'];
   const visibleTabs = session?.role === 'client'
     ? allTabs.filter(t => clientTabIds.includes(t.id))
-    : allTabs;
+    : session?.role === 'user'
+      ? allTabs.filter(t => t.id !== 'users')   // staff: everything except user management
+      : allTabs;                                // super admin: everything
 
   const handleSelectClient = (client: Client) => {
     setSelectedClient(client);
@@ -125,8 +130,11 @@ export default function App() {
     );
   }
 
-  const roleLabel = session.role === 'superadmin' ? 'Super Admin' : loggedInClient?.name || 'Client';
-  const RoleIcon = session.role === 'superadmin' ? Shield : User;
+  const isStaff = session.role === 'superadmin' || session.role === 'user';
+  const roleLabel = session.role === 'superadmin' ? 'Super Admin'
+    : session.role === 'user' ? 'User'
+    : loggedInClient?.name || 'Client';
+  const RoleIcon = session.role === 'superadmin' ? Shield : session.role === 'user' ? UserCog : User;
   const activeTabLabel = visibleTabs.find(t => t.id === activeTab)?.label ?? 'Payment Insight';
 
   return (
@@ -205,9 +213,9 @@ export default function App() {
           <div>
             <h2 className="text-2xl font-bold text-[#7B1E2B]">{activeTabLabel}</h2>
             <p className="text-gray-600 text-sm">
-              {session.role === 'superadmin'
-                ? 'Manage loans, clients, invoices, and payments all in one place'
-                : 'View your invoices, payments, and loan schedule'}
+              {session.role === 'client'
+                ? 'View your invoices, payments, and loan schedule'
+                : 'Manage loans, clients, invoices, and payments all in one place'}
             </p>
           </div>
           <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
@@ -219,11 +227,11 @@ export default function App() {
         </header>
 
         <div className="p-4 md:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {session.role === 'superadmin' && activeTab === 'calculator' && <LoanCalculator />}
-          {session.role === 'superadmin' && activeTab === 'clients' && (
+          {isStaff && activeTab === 'calculator' && <LoanCalculator />}
+          {isStaff && activeTab === 'clients' && (
             <ClientManagement onSelectClient={handleSelectClient} />
           )}
-          {session.role === 'superadmin' && activeTab === 'quickbooks' && <QuickBooksIntegration />}
+          {isStaff && activeTab === 'quickbooks' && <QuickBooksIntegration />}
           {session.role === 'superadmin' && activeTab === 'users' && <UserManagement currentEmail={userEmail} />}
 
           {activeTab === 'invoices' && (
