@@ -41,21 +41,31 @@ export const provisionClientUser = (email: string, tempPassword: string) =>
 export const provisionAdminUser = (email: string, tempPassword: string) =>
   provisionUser(email, tempPassword, 'superadmin');
 
-export interface AdminUser {
+export interface ManagedUser {
   email: string;
+  role: 'admin' | 'client';
   status?: string;
   enabled?: boolean;
   created?: string;
 }
 
-export async function listAdmins(): Promise<AdminUser[]> {
-  const out = await cip.send(new ListUsersInGroupCommand({ UserPoolId: pool, GroupName: 'superadmin' }));
+async function listGroup(group: string): Promise<Omit<ManagedUser, 'role'>[]> {
+  const out = await cip.send(new ListUsersInGroupCommand({ UserPoolId: pool, GroupName: group }));
   return (out.Users || []).map((u) => ({
     email: u.Attributes?.find((a) => a.Name === 'email')?.Value || u.Username || '',
     status: u.UserStatus,
     enabled: u.Enabled,
     created: u.UserCreateDate ? new Date(u.UserCreateDate).toISOString() : undefined,
   }));
+}
+
+// All users across both roles. If a user is somehow in both groups, admin wins.
+export async function listAllUsers(): Promise<ManagedUser[]> {
+  const [admins, clients] = await Promise.all([listGroup('superadmin'), listGroup('client')]);
+  const byEmail = new Map<string, ManagedUser>();
+  for (const c of clients) byEmail.set(c.email.toLowerCase(), { ...c, role: 'client' });
+  for (const a of admins) byEmail.set(a.email.toLowerCase(), { ...a, role: 'admin' });
+  return [...byEmail.values()].sort((a, b) => a.email.localeCompare(b.email));
 }
 
 export async function deleteUser(email: string): Promise<void> {

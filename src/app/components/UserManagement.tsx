@@ -1,13 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { ShieldCheck, Plus, Trash2, CheckCircle, Copy, X, Mail } from 'lucide-react';
-import { dataApi } from '../lib/dataApi';
-
-interface AdminUser {
-  email: string;
-  status?: string;
-  enabled?: boolean;
-  created?: string;
-}
+import { Users as UsersIcon, Plus, Trash2, CheckCircle, Copy, X, Mail, Shield, User } from 'lucide-react';
+import { dataApi, ManagedUser } from '../lib/dataApi';
 
 interface UserManagementProps {
   currentEmail: string;
@@ -16,6 +9,7 @@ interface UserManagementProps {
 const statusLabel = (s?: string) =>
   s === 'FORCE_CHANGE_PASSWORD' ? 'Invited — pending first sign-in'
     : s === 'CONFIRMED' ? 'Active'
+    : s === 'RESET_REQUIRED' ? 'Password reset required'
     : s || 'Unknown';
 
 const statusColor = (s?: string) =>
@@ -24,7 +18,7 @@ const statusColor = (s?: string) =>
     : 'bg-gray-100 text-gray-700 border-gray-300';
 
 export function UserManagement({ currentEmail }: UserManagementProps) {
-  const [admins, setAdmins] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
@@ -34,11 +28,9 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
   const reload = async () => {
     setLoading(true);
     try {
-      const list = await dataApi.listAdmins();
-      list.sort((a, b) => a.email.localeCompare(b.email));
-      setAdmins(list);
+      setUsers(await dataApi.listUsers());
     } catch (e) {
-      console.error('Error loading admins:', e);
+      console.error('Error loading users:', e);
     } finally {
       setLoading(false);
     }
@@ -46,13 +38,13 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
 
   useEffect(() => { reload(); }, []);
 
-  const addAdmin = async (e: FormEvent) => {
+  const inviteAdmin = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
     const addr = email.trim();
     if (!addr) return;
     try {
-      const res = await dataApi.createAdmin({ email: addr });
+      const res = await dataApi.inviteAdmin({ email: addr });
       setCreated({ email: res.email, password: res.tempPassword });
       setEmail('');
       setShowForm(false);
@@ -62,15 +54,19 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
     }
   };
 
-  const removeAdmin = async (addr: string) => {
-    if (!confirm(`Remove admin access for ${addr}? Their login will be deleted.`)) return;
+  const removeUser = async (u: ManagedUser) => {
+    const extra = u.role === 'client' ? '\n\nThis also removes their client & loan record.' : '';
+    if (!confirm(`Remove ${u.email}? Their login will be deleted.${extra}`)) return;
     try {
-      await dataApi.deleteAdmin(addr);
+      await dataApi.deleteUser(u.email);
       await reload();
     } catch (err: any) {
-      alert('Error removing admin: ' + (err?.message || 'please try again.'));
+      alert('Error removing user: ' + (err?.message || 'please try again.'));
     }
   };
+
+  const adminCount = users.filter((u) => u.role === 'admin').length;
+  const clientCount = users.filter((u) => u.role === 'client').length;
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
@@ -108,11 +104,14 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-semibold flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-[#7B1E2B]" />
-            Admin Users
-            <span className="ml-2 px-3 py-1 bg-[#A6332E] text-white rounded-full text-sm font-bold">{admins.length}</span>
+            <UsersIcon className="w-6 h-6 text-[#7B1E2B]" />
+            User Management
+            <span className="ml-2 px-3 py-1 bg-[#A6332E] text-white rounded-full text-sm font-bold">{users.length}</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1">Admins have full access to clients, invoices, payments, and this page.</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {adminCount} admin{adminCount === 1 ? '' : 's'} · {clientCount} client{clientCount === 1 ? '' : 's'}.
+            Admins have full access; clients only see their own portal.
+          </p>
         </div>
         <button
           onClick={() => { setShowForm((s) => !s); setError(''); }}
@@ -123,8 +122,9 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
       </div>
 
       {showForm && (
-        <form onSubmit={addAdmin} className="mb-6 p-4 bg-rose-50 rounded-lg border-2 border-rose-200">
-          <h3 className="text-lg font-semibold mb-3">Invite a new admin</h3>
+        <form onSubmit={inviteAdmin} className="mb-6 p-4 bg-rose-50 rounded-lg border-2 border-rose-200">
+          <h3 className="text-lg font-semibold mb-1">Invite a new admin</h3>
+          <p className="text-xs text-gray-500 mb-3">To add a client, use the <span className="font-semibold text-[#7B1E2B]">Clients</span> tab (so you can enter their loan details).</p>
           <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
@@ -139,7 +139,6 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
               <Mail className="w-4 h-4" /> Create admin
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">A temporary password is generated; they'll change it on first sign-in.</p>
           {error && <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
         </form>
       )}
@@ -149,43 +148,56 @@ export function UserManagement({ currentEmail }: UserManagementProps) {
           <thead>
             <tr className="bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white">
               <th className="px-4 py-3 text-left text-sm font-semibold">Email</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold">Role</th>
               <th className="px-4 py-3 text-left text-sm font-semibold">Status</th>
               <th className="px-4 py-3 text-center text-sm font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={3} className="px-4 py-10 text-center text-gray-500">Loading…</td></tr>
-            ) : admins.length === 0 ? (
-              <tr><td colSpan={3} className="px-4 py-10 text-center text-gray-500">No admins found.</td></tr>
+              <tr><td colSpan={4} className="px-4 py-10 text-center text-gray-500">Loading…</td></tr>
+            ) : users.length === 0 ? (
+              <tr><td colSpan={4} className="px-4 py-10 text-center text-gray-500">No users found.</td></tr>
             ) : (
-              admins.map((a, i) => (
-                <tr key={a.email} className={`border-b border-gray-100 ${i % 2 ? 'bg-gray-50' : 'bg-white'}`}>
-                  <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                    {a.email}
-                    {a.email.toLowerCase() === currentEmail.toLowerCase() && (
-                      <span className="ml-2 text-xs text-gray-500">(you)</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColor(a.status)}`}>
-                      {statusLabel(a.status)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {a.email.toLowerCase() === currentEmail.toLowerCase() ? (
-                      <span className="text-xs text-gray-400">—</span>
-                    ) : (
-                      <button
-                        onClick={() => removeAdmin(a.email)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 font-medium"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Remove
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
+              users.map((u, i) => {
+                const isSelf = u.email.toLowerCase() === currentEmail.toLowerCase();
+                return (
+                  <tr key={u.email} className={`border-b border-gray-100 ${i % 2 ? 'bg-gray-50' : 'bg-white'}`}>
+                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                      {u.email}
+                      {isSelf && <span className="ml-2 text-xs text-gray-500">(you)</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.role === 'admin' ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-[#7B1E2B] border border-rose-200">
+                          <Shield className="w-3.5 h-3.5" /> Admin
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
+                          <User className="w-3.5 h-3.5" /> Client
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${statusColor(u.status)}`}>
+                        {statusLabel(u.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {isSelf ? (
+                        <span className="text-xs text-gray-400">—</span>
+                      ) : (
+                        <button
+                          onClick={() => removeUser(u)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded text-xs hover:bg-red-700 font-medium"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Remove
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -73,7 +73,7 @@ export default function App() {
     { id: 'amortization', label: 'Amortization', icon: Table },
     { id: 'quickbooks', label: 'QuickBooks', icon: Link2 },
     { id: 'online-payment', label: 'Online Payment', icon: DollarSign },
-    { id: 'users', label: 'Admin Users', icon: UserCog },
+    { id: 'users', label: 'User Management', icon: UserCog },
   ];
 
   const clientTabIds: TabType[] = ['invoices', 'payments', 'amortization', 'online-payment'];
@@ -143,7 +143,7 @@ export default function App() {
         </div>
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {visibleTabs.map((tab) => {
+          {visibleTabs.filter((t) => t.id !== 'users').map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -163,6 +163,24 @@ export default function App() {
             );
           })}
         </nav>
+
+        {/* User Management pinned just above the sign-out footer (admins only) */}
+        {visibleTabs.some((t) => t.id === 'users') && (
+          <div className="p-3 border-t border-white/10">
+            <button
+              onClick={() => setActiveTab('users')}
+              title="User Management"
+              className={`w-full flex items-center justify-center md:justify-start gap-3 px-3 py-3 rounded-lg font-semibold transition-all ${
+                activeTab === 'users'
+                  ? 'bg-white text-[#7B1E2B] shadow-md'
+                  : 'text-white/80 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              <UserCog className="w-5 h-5 shrink-0" />
+              <span className="hidden md:inline">User Management</span>
+            </button>
+          </div>
+        )}
 
         <div className="p-3 border-t border-white/10 space-y-2">
           <div className="flex items-center justify-center md:justify-start gap-2 px-2 py-2 rounded-lg bg-white/10">

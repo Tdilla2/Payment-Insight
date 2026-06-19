@@ -44,6 +44,14 @@ function toInvoice(r: any): Invoice {
   };
 }
 
+export interface ManagedUser {
+  email: string;
+  role: 'admin' | 'client';
+  status?: string;
+  enabled?: boolean;
+  created?: string;
+}
+
 export interface Me {
   email: string;
   role: 'superadmin' | 'client';
@@ -71,11 +79,11 @@ export const dataApi = {
   updateInvoice: async (id: string, i: Partial<Invoice>): Promise<Invoice> => toInvoice(await api.put(`/invoices/${id}`, i)),
   deleteInvoice: (id: string) => api.del(`/invoices/${id}`),
 
-  // admin users
-  listAdmins: () => api.get<{ email: string; status?: string; enabled?: boolean; created?: string }[]>('/admins'),
-  createAdmin: (a: { email: string; password?: string }) =>
-    api.post<{ email: string; tempPassword: string }>('/admins', a),
-  deleteAdmin: (email: string) => api.del(`/admins/${encodeURIComponent(email)}`),
+  // user management (admins + clients)
+  listUsers: () => api.get<ManagedUser[]>('/users'),
+  inviteAdmin: (a: { email: string; password?: string }) =>
+    api.post<{ email: string; role: 'admin'; tempPassword: string }>('/users', a),
+  deleteUser: (email: string) => api.del(`/users/${encodeURIComponent(email)}`),
 
   // payments
   createPaymentIntent: (invoiceId: string) =>
