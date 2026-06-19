@@ -237,6 +237,10 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
     return json(404, { error: 'not found', path, method });
   } catch (err: any) {
     console.error(err);
+    // Surface known client errors (e.g. duplicate user) with their message.
+    if (err?.statusCode && err.statusCode < 500) {
+      return json(err.statusCode, { error: err.message });
+    }
     return json(500, { error: 'server_error', detail: err?.message });
   }
 };

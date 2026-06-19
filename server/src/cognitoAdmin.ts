@@ -11,6 +11,11 @@ const region = process.env.AWS_REGION_NAME || process.env.AWS_REGION || 'us-east
 const pool = process.env.COGNITO_USER_POOL_ID!;
 const cip = new CognitoIdentityProviderClient({ region });
 
+export class ConflictError extends Error {
+  statusCode = 409;
+  constructor(message: string) { super(message); this.name = 'ConflictError'; }
+}
+
 // Create a user with a temporary password and add them to a group.
 // A non-permanent password forces the NEW_PASSWORD_REQUIRED challenge at first login.
 async function provisionUser(email: string, tempPassword: string, group: string): Promise<void> {
@@ -24,15 +29,20 @@ async function provisionUser(email: string, tempPassword: string, group: string)
       ],
       MessageAction: 'SUPPRESS',
     }));
-    await cip.send(new AdminSetUserPasswordCommand({
-      UserPoolId: pool, Username: email, Password: tempPassword, Permanent: false,
-    }));
-    await cip.send(new AdminAddUserToGroupCommand({
-      UserPoolId: pool, Username: email, GroupName: group,
-    }));
   } catch (e: any) {
-    if (e?.name !== 'UsernameExistsException') throw e;
+    // Surface duplicates clearly instead of silently "succeeding".
+    if (e?.name === 'UsernameExistsException') {
+      throw new ConflictError('A user with that email already exists (it may be a client or another login).');
+    }
+    throw e;
   }
+  // Only runs for a freshly-created user — never modifies an existing account.
+  await cip.send(new AdminSetUserPasswordCommand({
+    UserPoolId: pool, Username: email, Password: tempPassword, Permanent: false,
+  }));
+  await cip.send(new AdminAddUserToGroupCommand({
+    UserPoolId: pool, Username: email, GroupName: group,
+  }));
 }
 
 export const provisionClientUser = (email: string, tempPassword: string) =>
