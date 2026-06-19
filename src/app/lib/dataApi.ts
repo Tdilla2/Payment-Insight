@@ -71,6 +71,12 @@ export const dataApi = {
   updateInvoice: async (id: string, i: Partial<Invoice>): Promise<Invoice> => toInvoice(await api.put(`/invoices/${id}`, i)),
   deleteInvoice: (id: string) => api.del(`/invoices/${id}`),
 
+  // admin users
+  listAdmins: () => api.get<{ email: string; status?: string; enabled?: boolean; created?: string }[]>('/admins'),
+  createAdmin: (a: { email: string; password?: string }) =>
+    api.post<{ email: string; tempPassword: string }>('/admins', a),
+  deleteAdmin: (email: string) => api.del(`/admins/${encodeURIComponent(email)}`),
+
   // payments
   createPaymentIntent: (invoiceId: string) =>
     api.post<{ intentId: string; clientSecret: string; publishableKey: string; mock: boolean; amount: number }>(

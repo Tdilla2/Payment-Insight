@@ -3,7 +3,7 @@ import { query, one } from './db.js';
 import { getConfig } from './config.js';
 import { amortization } from './amortization.js';
 import { createPaymentIntent, settlePayment } from './stripe.js';
-import { provisionClientUser, deleteUser } from './cognitoAdmin.js';
+import { provisionClientUser, provisionAdminUser, listAdmins, deleteUser } from './cognitoAdmin.js';
 
 // ---------- helpers ----------
 const json = (statusCode: number, body: unknown): APIGatewayProxyResultV2 => ({
@@ -108,6 +108,26 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
     const myClient = await clientIdFor(id);
     const admin = id.role === 'superadmin';
+
+    // ----- /admins (admin user management; superadmin only) -----
+    if (seg[0] === 'admins') {
+      if (!admin) return json(403, { error: 'forbidden' });
+      if (seg.length === 1 && method === 'GET') return json(200, await listAdmins());
+      if (seg.length === 1 && method === 'POST') {
+        const b = body(event);
+        if (!b.email) return json(400, { error: 'email required' });
+        const tempPassword = b.password || 'Temp1234!';
+        await provisionAdminUser(b.email, tempPassword);
+        return json(201, { email: b.email, tempPassword });
+      }
+      if (seg.length === 2 && method === 'DELETE') {
+        const target = decodeURIComponent(seg[1]);
+        if (target.toLowerCase() === id.email.toLowerCase())
+          return json(400, { error: 'You cannot remove your own admin account.' });
+        await deleteUser(target);
+        return json(204, {});
+      }
+    }
 
     // ----- /clients -----
     if (seg[0] === 'clients') {

@@ -40,7 +40,9 @@ resource "aws_iam_role_policy" "lambda_secrets" {
           "cognito-idp:AdminCreateUser",
           "cognito-idp:AdminSetUserPassword",
           "cognito-idp:AdminAddUserToGroup",
+          "cognito-idp:AdminRemoveUserFromGroup",
           "cognito-idp:AdminDeleteUser",
+          "cognito-idp:ListUsersInGroup",
         ]
         Resource = [aws_cognito_user_pool.main.arn]
       },

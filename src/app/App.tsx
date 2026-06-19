@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, Users, FileText, CreditCard, Link2, DollarSign, Table, LogOut, Shield, User } from 'lucide-react';
+import { Calculator, Users, FileText, CreditCard, Link2, DollarSign, Table, LogOut, Shield, User, UserCog } from 'lucide-react';
 import { LoanCalculator } from './components/LoanCalculator';
 import { ClientManagement, Client } from './components/ClientManagement';
 import { InvoiceGenerator } from './components/InvoiceGenerator';
@@ -9,10 +9,11 @@ import { OnlinePayment } from './components/OnlinePayment';
 import { ClientAmortizationSchedule } from './components/ClientAmortizationSchedule';
 import { LoginScreen, UserSession } from './components/LoginScreen';
 import { ChangePasswordScreen } from './components/ChangePasswordScreen';
+import { UserManagement } from './components/UserManagement';
 import { dataApi } from './lib/dataApi';
 import { getTokens, signOut } from './lib/cognito';
 
-type TabType = 'calculator' | 'clients' | 'invoices' | 'payments' | 'quickbooks' | 'online-payment' | 'amortization';
+type TabType = 'calculator' | 'clients' | 'invoices' | 'payments' | 'quickbooks' | 'online-payment' | 'amortization' | 'users';
 
 interface PayableInvoice {
   id: string;
@@ -25,6 +26,7 @@ interface PayableInvoice {
 export default function App() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [booting, setBooting] = useState(true);
+  const [userEmail, setUserEmail] = useState('');
   const [loggedInClient, setLoggedInClient] = useState<Client | null>(null);
   const [pendingNewPassword, setPendingNewPassword] = useState<{ email: string; session: string } | null>(null);
 
@@ -37,6 +39,7 @@ export default function App() {
     setBooting(true);
     try {
       const me = await dataApi.me();
+      setUserEmail(me.email);
       if (me.role === 'superadmin') {
         setSession({ role: 'superadmin' });
         setActiveTab('calculator');
@@ -70,6 +73,7 @@ export default function App() {
     { id: 'amortization', label: 'Amortization', icon: Table },
     { id: 'quickbooks', label: 'QuickBooks', icon: Link2 },
     { id: 'online-payment', label: 'Online Payment', icon: DollarSign },
+    { id: 'users', label: 'Admin Users', icon: UserCog },
   ];
 
   const clientTabIds: TabType[] = ['invoices', 'payments', 'amortization', 'online-payment'];
@@ -202,6 +206,7 @@ export default function App() {
             <ClientManagement onSelectClient={handleSelectClient} />
           )}
           {session.role === 'superadmin' && activeTab === 'quickbooks' && <QuickBooksIntegration />}
+          {session.role === 'superadmin' && activeTab === 'users' && <UserManagement currentEmail={userEmail} />}
 
           {activeTab === 'invoices' && (
             session.role === 'client'
