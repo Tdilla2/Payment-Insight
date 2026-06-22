@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Send, Download, AlertCircle, Users, ArrowLeft, Printer, Mail, Phone, Trash2 } from 'lucide-react';
+import { FileText, Send, AlertCircle, Users, ArrowLeft, Printer, Mail, Phone, Trash2 } from 'lucide-react';
 import { Client } from './ClientManagement';
 import { dataApi } from '../lib/dataApi';
 
@@ -253,10 +253,6 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
     }
   };
 
-  const sendToQuickBooks = () => {
-    alert('QuickBooks Integration: This would send the invoice to QuickBooks.\n\nIn production, this would:\n1. Connect to QuickBooks API\n2. Create invoice in QuickBooks\n3. Sync customer data\n4. Return invoice ID');
-  };
-
   const sendInvoiceEmail = () => {
     alert(`Email sent to ${selectedClient.email}!\n\nInvoice: ${invoiceNumber}\nAmount: ${formatCurrency(totalAmount)}\n\nIncludes payment link for online payment.`);
   };
@@ -495,7 +491,7 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-3 print:hidden">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3 print:hidden">
         <button
           onClick={generateInvoice}
           className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#7B1E2B] to-[#A6332E] text-white rounded-lg hover:from-[#5E1620] hover:to-[#5E1620] transition-colors font-semibold shadow-lg"
@@ -509,13 +505,6 @@ export function InvoiceGenerator({ client, onClose, lockedToClient }: InvoiceGen
         >
           <Printer className="w-5 h-5" />
           Print / PDF
-        </button>
-        <button
-          onClick={sendToQuickBooks}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#2CA01C] text-white rounded-lg hover:bg-[#228016] transition-colors font-semibold shadow-lg"
-        >
-          <Download className="w-5 h-5" />
-          QuickBooks
         </button>
         <button
           onClick={sendInvoiceEmail}

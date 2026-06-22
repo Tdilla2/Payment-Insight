@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Calculator, Users, FileText, CreditCard, Link2, DollarSign, Table, LogOut, Shield, User, UserCog } from 'lucide-react';
+import { Calculator, Users, FileText, CreditCard, DollarSign, Table, LogOut, Shield, User, UserCog } from 'lucide-react';
 import { LoanCalculator } from './components/LoanCalculator';
 import { ClientManagement, Client } from './components/ClientManagement';
 import { InvoiceGenerator } from './components/InvoiceGenerator';
 import { PaymentTracking } from './components/PaymentTracking';
-import { QuickBooksIntegration } from './components/QuickBooksIntegration';
 import { OnlinePayment } from './components/OnlinePayment';
 import { ClientAmortizationSchedule } from './components/ClientAmortizationSchedule';
 import { LoginScreen, UserSession } from './components/LoginScreen';
@@ -13,7 +12,7 @@ import { UserManagement } from './components/UserManagement';
 import { dataApi } from './lib/dataApi';
 import { getTokens, signOut } from './lib/cognito';
 
-type TabType = 'calculator' | 'clients' | 'invoices' | 'payments' | 'quickbooks' | 'online-payment' | 'amortization' | 'users';
+type TabType = 'calculator' | 'clients' | 'invoices' | 'payments' | 'online-payment' | 'amortization' | 'users';
 
 interface PayableInvoice {
   id: string;
@@ -74,7 +73,6 @@ export default function App() {
     { id: 'invoices', label: 'Invoices', icon: FileText },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'amortization', label: 'Amortization', icon: Table },
-    { id: 'quickbooks', label: 'QuickBooks', icon: Link2 },
     { id: 'online-payment', label: 'Online Payment', icon: DollarSign },
     { id: 'users', label: 'User Management', icon: UserCog },
   ];
@@ -231,7 +229,6 @@ export default function App() {
           {isStaff && activeTab === 'clients' && (
             <ClientManagement onSelectClient={handleSelectClient} />
           )}
-          {isStaff && activeTab === 'quickbooks' && <QuickBooksIntegration />}
           {session.role === 'superadmin' && activeTab === 'users' && <UserManagement currentEmail={userEmail} />}
 
           {activeTab === 'invoices' && (
